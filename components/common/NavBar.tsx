@@ -97,49 +97,65 @@ const Navbar = () => {
         </div>
 
         {/* User Icon Desktop */}
-        <div className="relative hidden md:block" ref={dropdownRef}>
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="w-10 h-10 bg-white rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-white cursor-pointer"
-            aria-label="User menu"
-          >
-            <FaUserCircle className="text-blue-600 text-2xl" />
-          </button>
-
-          {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-60 bg-white rounded-md shadow-lg py-1 z-50">
-              <div className="px-4 py-3 border-b border-gray-100">
-                <div className="flex items-center">
-                  <div className="bg-gray-200 rounded-full w-10 h-10 flex items-center justify-center">
-                    <span className="font-medium text-gray-700">
-                      {user?.name?.charAt(0) || "U"}
-                    </span>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-gray-800 font-medium">
-                      {user?.name || "User"}
-                    </p>
-                    <p className="text-gray-500 text-sm">
-                      {user?.email || "user@user.com"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <Link
-                href="/settings/profile"
-                className="px-4 py-3 text-gray-700 hover:bg-gray-100 flex items-center border-b border-gray-100"
-              >
-                <FaCog className="mr-3 text-gray-500" />
-                Settings
-              </Link>
+        <div className="hidden md:flex items-center space-x-4">
+          {user ? (
+            <div className="relative" ref={dropdownRef}>
               <button
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 flex items-center"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-white cursor-pointer"
+                aria-label="User menu"
               >
-                <FaSignOutAlt className="mr-3 text-gray-500" />
-                Log out
+                <FaUserCircle className="text-blue-600 text-2xl" />
               </button>
+
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-60 bg-white rounded-md shadow-lg py-1 z-50">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center">
+                      <div className="bg-gray-200 rounded-full w-10 h-10 flex items-center justify-center">
+                        <span className="font-medium text-gray-700">
+                          {user?.name?.charAt(0) || "U"}
+                        </span>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-gray-800 font-medium">
+                          {user?.name || "User"}
+                        </p>
+                        <p className="text-gray-500 text-sm">
+                          {user?.email || "user@user.com"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <Link
+                    href="/settings/profile"
+                    className="px-4 py-3 text-gray-700 hover:bg-gray-100 flex items-center border-b border-gray-100"
+                  >
+                    <FaCog className="mr-3 text-gray-500" />
+                    Settings
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 flex items-center"
+                  >
+                    <FaSignOutAlt className="mr-3 text-gray-500" />
+                    Log out
+                  </button>
+                </div>
+              )}
             </div>
+          ) : (
+            <>
+              <Link href="/auth/login" className="text-white hover:underline">
+                Login
+              </Link>
+              <Link
+                href="/auth/register"
+                className="text-white hover:underline"
+              >
+                Register
+              </Link>
+            </>
           )}
         </div>
 
@@ -177,13 +193,55 @@ const Navbar = () => {
           </Link>
 
           {/* User Icon for Mobile */}
-          <button
-            onClick={() => setIsMobileUserMenuOpen(!isMobileUserMenuOpen)}
-            className="w-full flex items-center text-blue-700 font-medium mt-3"
-          >
-            <FaUserCircle className="mr-2 text-xl" />
-            {user?.name || "User"}
-          </button>
+          {user ? (
+            <>
+              <button
+                onClick={() => setIsMobileUserMenuOpen(!isMobileUserMenuOpen)}
+                className="w-full flex items-center text-blue-700 font-medium mt-3"
+              >
+                <FaUserCircle className="mr-2 text-xl" />
+                {user?.name || "User"}
+              </button>
+
+              {isMobileUserMenuOpen && (
+                <div className="ml-5 space-y-2">
+                  <Link
+                    href="/settings/profile"
+                    onClick={handleMobileLinkClick}
+                    className="flex items-center text-gray-700"
+                  >
+                    <FaCog className="mr-2" /> Settings
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      handleMobileLinkClick();
+                    }}
+                    className="flex items-center text-gray-700"
+                  >
+                    <FaSignOutAlt className="mr-2" /> Log out
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="mt-3 space-y-2">
+              <Link
+                href="/auth/login"
+                onClick={handleMobileLinkClick}
+                className="block text-blue-700"
+              >
+                Login
+              </Link>
+              <Link
+                href="/auth/register"
+                onClick={handleMobileLinkClick}
+                className="block text-blue-700"
+              >
+                Register
+              </Link>
+            </div>
+          )}
 
           {isMobileUserMenuOpen && (
             <div className="ml-5 space-y-2">
