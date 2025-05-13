@@ -129,6 +129,7 @@ const Navbar = () => {
                   </div>
                   <Link
                     href="/settings/profile"
+                    onClick={() => setIsDropdownOpen(false)}
                     className="px-4 py-3 text-gray-700 hover:bg-gray-100 flex items-center border-b border-gray-100"
                   >
                     <FaCog className="mr-3 text-gray-500" />
@@ -240,27 +241,6 @@ const Navbar = () => {
               >
                 Register
               </Link>
-            </div>
-          )}
-
-          {isMobileUserMenuOpen && (
-            <div className="ml-5 space-y-2">
-              <Link
-                href="/settings/profile"
-                onClick={handleMobileLinkClick}
-                className="flex items-center text-gray-700"
-              >
-                <FaCog className="mr-2" /> Settings
-              </Link>
-              <button
-                onClick={() => {
-                  handleLogout();
-                  handleMobileLinkClick();
-                }}
-                className="flex items-center text-gray-700"
-              >
-                <FaSignOutAlt className="mr-2" /> Log out
-              </button>
             </div>
           )}
         </div>
