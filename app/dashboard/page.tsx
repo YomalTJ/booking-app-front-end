@@ -9,7 +9,7 @@ import { Toaster, toast } from "react-hot-toast";
 interface Booking {
   _id: string;
   userId: string;
-  roomId: { 
+  roomId: {
     _id: string;
     name: string;
     description: string;
@@ -26,26 +26,26 @@ const Dashboard = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      setIsLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          toast.error("Please log in to view your bookings");
-          return;
-        }
-
-        const userBookings = await bookingService.getUserBookings(token);
-        setBookings(userBookings);
-      } catch (error) {
-        console.error("Error fetching bookings:", error);
-        toast.error("Failed to load bookings. Please try again.");
-      } finally {
-        setIsLoading(false);
+  const fetchBookings = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please log in to view your bookings");
+        return;
       }
-    };
 
+      const userBookings = await bookingService.getUserBookings(token);
+      setBookings(userBookings);
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      toast.error("Failed to load bookings. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchBookings();
   }, []);
 
@@ -72,7 +72,11 @@ const Dashboard = () => {
           {/* Bookings grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {bookings.map((booking) => (
-              <BookingCard key={booking._id} booking={booking} />
+              <BookingCard
+                key={booking._id}
+                booking={booking}
+                onUpdate={fetchBookings}
+              />
             ))}
           </div>
 
