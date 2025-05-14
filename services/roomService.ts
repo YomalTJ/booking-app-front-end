@@ -33,38 +33,50 @@ export const roomService = {
     }
   },
 
-  isRoomAvailableOnDate(room: Room, dateString: string): boolean {
-    const checkDateStr = dateString.split("T")[0];
-    const checkDate = new Date(checkDateStr + "T00:00:00.000Z");
-
-    if (room.bookings && room.bookings.length > 0) {
-      for (const booking of room.bookings) {
-        const startDateStr = booking.startDate.split("T")[0];
-        const endDateStr = booking.endDate.split("T")[0];
-
-        const startDate = new Date(startDateStr + "T00:00:00.000Z");
-        const endDate = new Date(endDateStr + "T00:00:00.000Z");
-
-        if (
-          checkDate.getTime() >= startDate.getTime() &&
-          checkDate.getTime() <= endDate.getTime()
-        ) {
-          return false;
-        }
-      }
-
-      return true;
+  isRoomAvailableForDateRange(
+    room: Room,
+    startDateStr: string,
+    endDateStr: string
+  ): boolean {
+    // If no booking data or empty bookings, just check the general availability flag
+    if (!room.bookings || room.bookings.length === 0) {
+      return room.availability;
     }
 
-    return room.availability;
+    // Convert input dates to Date objects for comparison
+    const startDate = new Date(startDateStr + "T00:00:00.000Z");
+    const endDate = new Date(endDateStr + "T00:00:00.000Z");
+
+    // Check if requested date range overlaps with any existing booking
+    for (const booking of room.bookings) {
+      const bookedStartDate = new Date(booking.startDate);
+      const bookedEndDate = new Date(booking.endDate);
+
+      // Check for overlap - if any day in the requested range overlaps with a booked range
+      if (
+        // Case 1: Start date falls within an existing booking
+        (startDate >= bookedStartDate && startDate <= bookedEndDate) ||
+        // Case 2: End date falls within an existing booking
+        (endDate >= bookedStartDate && endDate <= bookedEndDate) ||
+        // Case 3: Booking falls completely within the requested date range
+        (startDate <= bookedStartDate && endDate >= bookedEndDate)
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  },
+
+  isRoomAvailableOnDate(room: Room, dateString: string): boolean {
+    // For single date checking, we use the same start and end date
+    return this.isRoomAvailableForDateRange(room, dateString, dateString);
   },
 
   async getAvailableRoomsForDate(dateString: string): Promise<Room[]> {
     try {
       const allRooms = await this.getAllRooms();
-
       const datePart = dateString.split("T")[0];
-
       return allRooms.filter((room) => {
         return this.isRoomAvailableOnDate(room, datePart);
       });
@@ -103,6 +115,27 @@ export const roomService = {
     } catch (error) {
       console.error("Error getting availability count:", error);
       return {};
+    }
+  },
+
+  // New method to check availability for a specific date range
+  async checkAvailabilityForDateRange(
+    roomId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<boolean> {
+    try {
+      const allRooms = await this.getAllRooms();
+      const room = allRooms.find((r) => r._id === roomId);
+
+      if (!room) {
+        return false;
+      }
+
+      return this.isRoomAvailableForDateRange(room, startDate, endDate);
+    } catch (error) {
+      console.error("Error checking room availability:", error);
+      return false;
     }
   },
 };

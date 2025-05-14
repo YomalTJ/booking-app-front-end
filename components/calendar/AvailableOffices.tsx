@@ -4,7 +4,6 @@ import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { IoClose } from "react-icons/io5";
 import { roomService, Room } from "@/services/roomService";
-import axios from "axios";
 import { bookingService } from "@/services/bookingService";
 import { Toaster, toast } from "react-hot-toast";
 
@@ -19,6 +18,7 @@ interface BookingDates {
     startDate: string;
     endDate: string;
     showDatePicker: boolean;
+    isAvailable: boolean;
   };
 }
 
@@ -51,6 +51,7 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
             startDate: selectedDateISO,
             endDate: selectedDateISO,
             showDatePicker: false,
+            isAvailable: true,
           };
         });
         setBookingDates(initialBookingDates);
@@ -78,11 +79,12 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
     }));
   };
 
-  const handleDateChange = (
+  const handleDateChange = async (
     roomId: string,
     field: "startDate" | "endDate",
     value: string
   ) => {
+    // First update the date in state
     setBookingDates((prev) => ({
       ...prev,
       [roomId]: {
@@ -90,6 +92,35 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
         [field]: value,
       },
     }));
+
+    // Then check availability for the new date range
+    const updatedDates = {
+      ...bookingDates[roomId],
+      [field]: value,
+    };
+
+    // Only check availability if both dates are set
+    if (updatedDates.startDate && updatedDates.endDate) {
+      const isAvailable = await roomService.checkAvailabilityForDateRange(
+        roomId,
+        updatedDates.startDate,
+        updatedDates.endDate
+      );
+
+      // Update availability status
+      setBookingDates((prev) => ({
+        ...prev,
+        [roomId]: {
+          ...prev[roomId],
+          isAvailable,
+        },
+      }));
+
+      // Show toast if not available
+      if (!isAvailable) {
+        toast.error("Room is not available for selected dates");
+      }
+    }
   };
 
   const handleBookNow = async (roomId: string) => {
@@ -98,7 +129,13 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
       return;
     }
 
-    const { startDate, endDate } = bookingDates[roomId];
+    const { startDate, endDate, isAvailable } = bookingDates[roomId];
+
+    if (!isAvailable) {
+      toast.error("Room is not available for the selected dates");
+      return;
+    }
+
     if (new Date(startDate) > new Date(endDate)) {
       toast.error("End date must be after or equal to start date");
       return;
@@ -292,20 +329,46 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
                                 }
                               />
                             </div>
+
+                            {bookingDates[room._id]?.startDate !==
+                              bookingDates[room._id]?.endDate && (
+                              <div className="mt-2">
+                                <div
+                                  className={`text-sm font-medium ${
+                                    bookingDates[room._id]?.isAvailable
+                                      ? "text-green-600"
+                                      : "text-red-600"
+                                  }`}
+                                >
+                                  {bookingDates[room._id]?.isAvailable
+                                    ? "✓ Room available for selected dates"
+                                    : "⚠️ Room not available for these dates"}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
 
                         <button
                           className={`w-full mt-4 py-2 rounded-md transition cursor-pointer ${
-                            bookingInProgress
-                              ? "bg-gray-400 text-gray-100"
+                            bookingInProgress ||
+                            (bookingDates[room._id]?.showDatePicker &&
+                              !bookingDates[room._id]?.isAvailable)
+                              ? "bg-gray-400 text-gray-100 cursor-not-allowed"
                               : "bg-blue-500 text-white hover:bg-blue-600"
                           }`}
                           onClick={() => handleBookNow(room._id)}
-                          disabled={bookingInProgress}
+                          disabled={
+                            bookingInProgress ||
+                            (bookingDates[room._id]?.showDatePicker &&
+                              !bookingDates[room._id]?.isAvailable)
+                          }
                         >
                           {bookingInProgress
                             ? "Processing..."
+                            : bookingDates[room._id]?.showDatePicker &&
+                              !bookingDates[room._id]?.isAvailable
+                            ? "Unavailable for Selected Dates"
                             : bookingDates[room._id]?.showDatePicker
                             ? "Confirm Booking"
                             : "Book Now"}
