@@ -52,15 +52,25 @@ const Register = () => {
   const onSubmit: SubmitHandler<RegisterFormInputs> = async (data) => {
     setIsLoading(true);
     try {
-      await authService.register({
+      const response = await authService.register({
         name: data.name,
         email: data.email,
         password: data.password,
         phoneNumber: data.phoneNumber,
       });
 
-      // Redirect to calendar view on successful registration
-      router.push("/calendar-view");
+      // Store token and user info
+      localStorage.setItem("token", response.token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          name: response.name,
+          email: response.email,
+        })
+      );
+
+      // Redirect to calendar view
+      router.push("/");
     } catch (error) {
     } finally {
       setIsLoading(false);
