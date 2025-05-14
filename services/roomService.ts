@@ -19,6 +19,15 @@ export interface RoomResponse {
   data: Room[];
 }
 
+// Enhanced availability response that includes conflict information
+export interface AvailabilityResponse {
+  isAvailable: boolean;
+  conflictingDates?: {
+    startDate: string;
+    endDate: string;
+  }[];
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const roomService = {
@@ -33,19 +42,21 @@ export const roomService = {
     }
   },
 
-  isRoomAvailableForDateRange(
+  getRoomAvailabilityForDateRange(
     room: Room,
     startDateStr: string,
     endDateStr: string
-  ): boolean {
+  ): AvailabilityResponse {
     // If no booking data or empty bookings, just check the general availability flag
     if (!room.bookings || room.bookings.length === 0) {
-      return room.availability;
+      return { isAvailable: room.availability };
     }
 
     // Convert input dates to Date objects for comparison
     const startDate = new Date(startDateStr + "T00:00:00.000Z");
     const endDate = new Date(endDateStr + "T00:00:00.000Z");
+
+    const conflictingDates: { startDate: string; endDate: string }[] = [];
 
     // Check if requested date range overlaps with any existing booking
     for (const booking of room.bookings) {
@@ -61,11 +72,32 @@ export const roomService = {
         // Case 3: Booking falls completely within the requested date range
         (startDate <= bookedStartDate && endDate >= bookedEndDate)
       ) {
-        return false;
+        // Add this conflict to the list
+        conflictingDates.push({
+          startDate: booking.startDate,
+          endDate: booking.endDate,
+        });
       }
     }
 
-    return true;
+    return {
+      isAvailable: conflictingDates.length === 0,
+      conflictingDates:
+        conflictingDates.length > 0 ? conflictingDates : undefined,
+    };
+  },
+
+  isRoomAvailableForDateRange(
+    room: Room,
+    startDateStr: string,
+    endDateStr: string
+  ): boolean {
+    const availabilityResult = this.getRoomAvailabilityForDateRange(
+      room,
+      startDateStr,
+      endDateStr
+    );
+    return availabilityResult.isAvailable;
   },
 
   isRoomAvailableOnDate(room: Room, dateString: string): boolean {
@@ -118,24 +150,24 @@ export const roomService = {
     }
   },
 
-  // New method to check availability for a specific date range
+  // Enhanced method to check availability with detailed conflict information
   async checkAvailabilityForDateRange(
     roomId: string,
     startDate: string,
     endDate: string
-  ): Promise<boolean> {
+  ): Promise<AvailabilityResponse> {
     try {
       const allRooms = await this.getAllRooms();
       const room = allRooms.find((r) => r._id === roomId);
 
       if (!room) {
-        return false;
+        return { isAvailable: false };
       }
 
-      return this.isRoomAvailableForDateRange(room, startDate, endDate);
+      return this.getRoomAvailabilityForDateRange(room, startDate, endDate);
     } catch (error) {
       console.error("Error checking room availability:", error);
-      return false;
+      return { isAvailable: false };
     }
   },
 };

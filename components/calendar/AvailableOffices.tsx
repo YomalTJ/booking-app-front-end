@@ -3,7 +3,11 @@
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { IoClose } from "react-icons/io5";
-import { roomService, Room } from "@/services/roomService";
+import {
+  roomService,
+  Room,
+  AvailabilityResponse,
+} from "@/services/roomService";
 import { bookingService } from "@/services/bookingService";
 import { Toaster, toast } from "react-hot-toast";
 
@@ -18,9 +22,18 @@ interface BookingDates {
     startDate: string;
     endDate: string;
     showDatePicker: boolean;
-    isAvailable: boolean;
+    availability: AvailabilityResponse;
   };
 }
+
+// Helper function to format dates for display
+const formatDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+};
 
 const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
   selectedDate,
@@ -51,7 +64,7 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
             startDate: selectedDateISO,
             endDate: selectedDateISO,
             showDatePicker: false,
-            isAvailable: true,
+            availability: { isAvailable: true },
           };
         });
         setBookingDates(initialBookingDates);
@@ -101,24 +114,41 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
 
     // Only check availability if both dates are set
     if (updatedDates.startDate && updatedDates.endDate) {
-      const isAvailable = await roomService.checkAvailabilityForDateRange(
-        roomId,
-        updatedDates.startDate,
-        updatedDates.endDate
-      );
+      const availabilityResponse =
+        await roomService.checkAvailabilityForDateRange(
+          roomId,
+          updatedDates.startDate,
+          updatedDates.endDate
+        );
 
       // Update availability status
       setBookingDates((prev) => ({
         ...prev,
         [roomId]: {
           ...prev[roomId],
-          isAvailable,
+          availability: availabilityResponse,
         },
       }));
 
-      // Show toast if not available
-      if (!isAvailable) {
-        toast.error("Room is not available for selected dates");
+      // Show toast with detailed information if not available
+      if (
+        !availabilityResponse.isAvailable &&
+        availabilityResponse.conflictingDates
+      ) {
+        const conflicts = availabilityResponse.conflictingDates
+          .map(
+            (conflict) =>
+              `${formatDate(conflict.startDate)} - ${formatDate(
+                conflict.endDate
+              )}`
+          )
+          .join(", ");
+
+        toast.error(
+          availabilityResponse.conflictingDates.length === 1
+            ? `Room is already booked during: ${conflicts}`
+            : `Room has ${availabilityResponse.conflictingDates.length} conflicting bookings: ${conflicts}`
+        );
       }
     }
   };
@@ -129,10 +159,31 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
       return;
     }
 
-    const { startDate, endDate, isAvailable } = bookingDates[roomId];
+    const { startDate, endDate, availability } = bookingDates[roomId];
 
-    if (!isAvailable) {
-      toast.error("Room is not available for the selected dates");
+    if (!availability.isAvailable) {
+      // Show detailed error message
+      if (
+        availability.conflictingDates &&
+        availability.conflictingDates.length > 0
+      ) {
+        const conflicts = availability.conflictingDates
+          .map(
+            (conflict) =>
+              `${formatDate(conflict.startDate)} - ${formatDate(
+                conflict.endDate
+              )}`
+          )
+          .join(", ");
+
+        toast.error(
+          availability.conflictingDates.length === 1
+            ? `Room is already booked during: ${conflicts}`
+            : `Room has ${availability.conflictingDates.length} conflicting bookings: ${conflicts}`
+        );
+      } else {
+        toast.error("Room is not available for the selected dates");
+      }
       return;
     }
 
@@ -163,11 +214,9 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
           setTimeout(() => {
             onClose();
           }, 2000);
-          return `Room booked successfully for ${new Date(
+          return `Room booked successfully from ${formatDate(
             startDate
-          ).toLocaleDateString()} to ${new Date(
-            endDate
-          ).toLocaleDateString()}!`;
+          )} to ${formatDate(endDate)}!`;
         },
         error: (err) => {
           return err.message || "Failed to book room. Please try again.";
@@ -179,6 +228,60 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
       console.error("Booking error:", err);
     } finally {
       setBookingInProgress(false);
+    }
+  };
+
+  // Create a function to render availability message
+  const renderAvailabilityMessage = (roomId: string) => {
+    const { availability, startDate, endDate } = bookingDates[roomId];
+
+    if (startDate === endDate) {
+      return null; // Don't show message for single day
+    }
+
+    if (availability.isAvailable) {
+      return (
+        <div className="mt-2">
+          <div className="text-sm font-medium text-green-600">
+            ✓ Room available from {formatDate(startDate)} to{" "}
+            {formatDate(endDate)}
+          </div>
+        </div>
+      );
+    } else if (
+      availability.conflictingDates &&
+      availability.conflictingDates.length > 0
+    ) {
+      return (
+        <div className="mt-2">
+          <div className="text-sm font-medium text-red-600">
+            ⚠️ Room unavailable due to existing bookings:
+          </div>
+          <ul className="text-xs text-red-500 ml-4 mt-1 list-disc">
+            {availability.conflictingDates
+              .slice(0, 3)
+              .map((conflict, index) => (
+                <li key={index}>
+                  {formatDate(conflict.startDate)} -{" "}
+                  {formatDate(conflict.endDate)}
+                </li>
+              ))}
+            {availability.conflictingDates.length > 3 && (
+              <li>
+                + {availability.conflictingDates.length - 3} more conflicts
+              </li>
+            )}
+          </ul>
+        </div>
+      );
+    } else {
+      return (
+        <div className="mt-2">
+          <div className="text-sm font-medium text-red-600">
+            ⚠️ Room not available for these dates
+          </div>
+        </div>
+      );
     }
   };
 
@@ -330,22 +433,8 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
                               />
                             </div>
 
-                            {bookingDates[room._id]?.startDate !==
-                              bookingDates[room._id]?.endDate && (
-                              <div className="mt-2">
-                                <div
-                                  className={`text-sm font-medium ${
-                                    bookingDates[room._id]?.isAvailable
-                                      ? "text-green-600"
-                                      : "text-red-600"
-                                  }`}
-                                >
-                                  {bookingDates[room._id]?.isAvailable
-                                    ? "✓ Room available for selected dates"
-                                    : "⚠️ Room not available for these dates"}
-                                </div>
-                              </div>
-                            )}
+                            {/* Enhanced availability message */}
+                            {renderAvailabilityMessage(room._id)}
                           </div>
                         )}
 
@@ -353,7 +442,7 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
                           className={`w-full mt-4 py-2 rounded-md transition cursor-pointer ${
                             bookingInProgress ||
                             (bookingDates[room._id]?.showDatePicker &&
-                              !bookingDates[room._id]?.isAvailable)
+                              !bookingDates[room._id]?.availability.isAvailable)
                               ? "bg-gray-400 text-gray-100 cursor-not-allowed"
                               : "bg-blue-500 text-white hover:bg-blue-600"
                           }`}
@@ -361,13 +450,13 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
                           disabled={
                             bookingInProgress ||
                             (bookingDates[room._id]?.showDatePicker &&
-                              !bookingDates[room._id]?.isAvailable)
+                              !bookingDates[room._id]?.availability.isAvailable)
                           }
                         >
                           {bookingInProgress
                             ? "Processing..."
                             : bookingDates[room._id]?.showDatePicker &&
-                              !bookingDates[room._id]?.isAvailable
+                              !bookingDates[room._id]?.availability.isAvailable
                             ? "Unavailable for Selected Dates"
                             : bookingDates[room._id]?.showDatePicker
                             ? "Confirm Booking"
