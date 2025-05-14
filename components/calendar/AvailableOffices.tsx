@@ -32,6 +32,7 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [bookingDates, setBookingDates] = useState<BookingDates>({});
   const [bookingInProgress, setBookingInProgress] = useState(false);
+  const [selectedCapacity, setSelectedCapacity] = useState<string>("All");
 
   useEffect(() => {
     const fetchAvailableRooms = async () => {
@@ -163,6 +164,28 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
               Available Offices on {selectedDate}
             </h2>
 
+            <div className="mb-4">
+              <label
+                htmlFor="capacityFilter"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Filter by Capacity
+              </label>
+              <select
+                id="capacityFilter"
+                className="border border-gray-300 rounded-md px-3 py-2 w-full max-w-xs focus:outline-none focus:ring-2 focus:border-blue-500 text-black"
+                value={selectedCapacity}
+                onChange={(e) => setSelectedCapacity(e.target.value)}
+              >
+                <option value="All">All</option>
+                {Array.from({ length: 19 }, (_, i) => i + 2).map((num) => (
+                  <option key={num} value={num}>
+                    {num} {num === 1 ? "person" : "persons"}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {isLoading ? (
               <div className="flex justify-center items-center h-48">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -180,108 +203,116 @@ const AvailableOffices: React.FC<AvailableOfficesPopupProps> = ({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {availableRooms.map((room) => (
-                  <div
-                    key={room._id}
-                    className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow"
-                  >
-                    <div className="relative h-48 w-full">
-                      <Image
-                        src={room.image || "/placeholder-office.jpg"}
-                        alt={room.name}
-                        fill
-                        className="object-cover"
-                        onError={(e) => {
-                          // Fallback for image loading errors
-                          const target = e.target as HTMLImageElement;
-                          target.src = "/placeholder-office.jpg";
-                        }}
-                      />
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                        {room.name}
-                      </h3>
-                      <p className="text-gray-600 text-sm mb-2">
-                        {room.description}
-                      </p>
-                      <div className="flex justify-between items-center mt-2">
-                        <div className="text-gray-700">
-                          <span className="font-medium">Capacity:</span>{" "}
-                          {room.capacity} persons
-                        </div>
-                        <div className="text-blue-600 font-bold">Available</div>
+                {availableRooms
+                  .filter((room) =>
+                    selectedCapacity === "All"
+                      ? true
+                      : room.capacity === Number(selectedCapacity)
+                  )
+                  .map((room) => (
+                    <div
+                      key={room._id}
+                      className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow"
+                    >
+                      <div className="relative h-48 w-full">
+                        <Image
+                          src={room.image || "/placeholder-office.jpg"}
+                          alt={room.name}
+                          fill
+                          className="object-cover"
+                          onError={(e) => {
+                            // Fallback for image loading errors
+                            const target = e.target as HTMLImageElement;
+                            target.src = "/placeholder-office.jpg";
+                          }}
+                        />
                       </div>
-
-                      {/* Date Selection UI */}
-                      {bookingDates[room._id]?.showDatePicker && (
-                        <div className="mt-3 space-y-2 border-t pt-3 border-gray-200">
-                          <div className="flex flex-col space-y-2">
-                            <label className="text-sm text-gray-600 font-medium">
-                              From:
-                            </label>
-                            <input
-                              type="date"
-                              className="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:border-blue-500 text-black"
-                              value={
-                                bookingDates[room._id]?.startDate ||
-                                selectedDateISO
-                              }
-                              min={selectedDateISO} // Can't book before selected date
-                              onChange={(e) =>
-                                handleDateChange(
-                                  room._id,
-                                  "startDate",
-                                  e.target.value
-                                )
-                              }
-                            />
+                      <div className="p-4">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                          {room.name}
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-2">
+                          {room.description}
+                        </p>
+                        <div className="flex justify-between items-center mt-2">
+                          <div className="text-gray-700">
+                            <span className="font-medium">Capacity:</span>{" "}
+                            {room.capacity} persons
                           </div>
-                          <div className="flex flex-col space-y-2">
-                            <label className="text-sm text-gray-600 font-medium">
-                              To:
-                            </label>
-                            <input
-                              type="date"
-                              className="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:border-blue-500 text-black"
-                              value={
-                                bookingDates[room._id]?.endDate ||
-                                selectedDateISO
-                              }
-                              min={
-                                bookingDates[room._id]?.startDate ||
-                                selectedDateISO
-                              } // Can't end before start date
-                              onChange={(e) =>
-                                handleDateChange(
-                                  room._id,
-                                  "endDate",
-                                  e.target.value
-                                )
-                              }
-                            />
+                          <div className="text-blue-600 font-bold">
+                            Available
                           </div>
                         </div>
-                      )}
 
-                      <button
-                        className={`w-full mt-4 py-2 rounded-md transition cursor-pointer ${
-                          bookingInProgress
-                            ? "bg-gray-400 text-gray-100"
-                            : "bg-blue-500 text-white hover:bg-blue-600"
-                        }`}
-                        onClick={() => handleBookNow(room._id)}
-                        disabled={bookingInProgress}
-                      >
-                        {bookingInProgress
-                          ? "Processing..."
-                          : bookingDates[room._id]?.showDatePicker
-                          ? "Confirm Booking"
-                          : "Book Now"}
-                      </button>
+                        {/* Date Selection UI */}
+                        {bookingDates[room._id]?.showDatePicker && (
+                          <div className="mt-3 space-y-2 border-t pt-3 border-gray-200">
+                            <div className="flex flex-col space-y-2">
+                              <label className="text-sm text-gray-600 font-medium">
+                                From:
+                              </label>
+                              <input
+                                type="date"
+                                className="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:border-blue-500 text-black"
+                                value={
+                                  bookingDates[room._id]?.startDate ||
+                                  selectedDateISO
+                                }
+                                min={selectedDateISO} // Can't book before selected date
+                                onChange={(e) =>
+                                  handleDateChange(
+                                    room._id,
+                                    "startDate",
+                                    e.target.value
+                                  )
+                                }
+                              />
+                            </div>
+                            <div className="flex flex-col space-y-2">
+                              <label className="text-sm text-gray-600 font-medium">
+                                To:
+                              </label>
+                              <input
+                                type="date"
+                                className="border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:border-blue-500 text-black"
+                                value={
+                                  bookingDates[room._id]?.endDate ||
+                                  selectedDateISO
+                                }
+                                min={
+                                  bookingDates[room._id]?.startDate ||
+                                  selectedDateISO
+                                } // Can't end before start date
+                                onChange={(e) =>
+                                  handleDateChange(
+                                    room._id,
+                                    "endDate",
+                                    e.target.value
+                                  )
+                                }
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <button
+                          className={`w-full mt-4 py-2 rounded-md transition cursor-pointer ${
+                            bookingInProgress
+                              ? "bg-gray-400 text-gray-100"
+                              : "bg-blue-500 text-white hover:bg-blue-600"
+                          }`}
+                          onClick={() => handleBookNow(room._id)}
+                          disabled={bookingInProgress}
+                        >
+                          {bookingInProgress
+                            ? "Processing..."
+                            : bookingDates[room._id]?.showDatePicker
+                            ? "Confirm Booking"
+                            : "Book Now"}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             )}
           </div>
