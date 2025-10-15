@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import FormInput from "./FormInput";
 import { authService } from "@/services/auth-service";
 import { toast, Toaster } from "react-hot-toast";
@@ -8,8 +8,22 @@ import { toast, Toaster } from "react-hot-toast";
 const ProfileForm = () => {
   const [userData, setUserData] = useState({
     name: "",
+    companyName: "",
     email: "",
   });
+
+  // Load user data from localStorage on component mount
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      setUserData({
+        name: user.name || "",
+        companyName: user.companyName || "",
+        email: user.email || "",
+      });
+    }
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -21,7 +35,16 @@ const ProfileForm = () => {
 
     try {
       await authService.updateProfile(userData);
-      setUserData({ name: "", email: "" });
+      
+      // Update localStorage with new user data
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        const updatedUser = { ...user, ...userData };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+      }
+      
+      toast.success("Profile updated successfully!");
     } catch (error) {
       console.error("Failed to update profile:", error);
     }
@@ -32,7 +55,7 @@ const ProfileForm = () => {
       <Toaster position="top-right" />
       <div className="mb-8">
         <h2 className="text-2xl font-bold mb-2">Profile information</h2>
-        <p className="text-gray-300">Update your name and email address</p>
+        <p className="text-gray-300">Update your name, company, and email address</p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -43,6 +66,14 @@ const ProfileForm = () => {
             label="Name"
             type="text"
             value={userData.name}
+            onChange={handleInputChange}
+          />
+          <FormInput
+            id="companyName"
+            name="companyName"
+            label="Company Name"
+            type="text"
+            value={userData.companyName}
             onChange={handleInputChange}
           />
           <FormInput
