@@ -1,7 +1,7 @@
 import axios from "axios";
 import { toast } from "react-hot-toast";
 
-const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth`;
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth`;
 
 export interface LoginCredentials {
   email: string;
@@ -10,6 +10,7 @@ export interface LoginCredentials {
 
 export interface RegisterCredentials {
   name: string;
+  companyName: string;
   email: string;
   password: string;
   phoneNumber: string;
@@ -17,6 +18,7 @@ export interface RegisterCredentials {
 
 export interface UpdateProfileData {
   name: string;
+  companyName: string;
   email: string;
 }
 
@@ -68,6 +70,7 @@ export const authService = {
   // Logout user
   logout() {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     toast.success("Logged out successfully");
   },
 

@@ -151,7 +151,7 @@ const Navbar = () => {
                 Login
               </Link>
               <Link
-                href="/auth/register"
+                href="/auth/signup"
                 className="text-white hover:underline"
               >
                 Register

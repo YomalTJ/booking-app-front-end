@@ -47,6 +47,7 @@ const Login = () => {
         "user",
         JSON.stringify({
           name: response.name,
+          companyName: response.companyName,
           email: response.email,
         })
       );

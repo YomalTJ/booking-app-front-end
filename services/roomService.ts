@@ -19,7 +19,6 @@ export interface RoomResponse {
   data: Room[];
 }
 
-// Enhanced availability response that includes conflict information
 export interface AvailabilityResponse {
   isAvailable: boolean;
   conflictingDates?: {
@@ -31,13 +30,15 @@ export interface AvailabilityResponse {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export const roomService = {
-  // Get all rooms
+  // Get all rooms - FIXED URL
   async getAllRooms(): Promise<Room[]> {
     try {
-      const response = await axios.get<RoomResponse>(`${API_BASE_URL}/rooms/`);
+      const response = await axios.get<RoomResponse>(`${API_BASE_URL}/api/rooms`);
+      console.log("Rooms API Response:", response.data);
       return response.data.data;
-    } catch (error) {
-      console.error("Error fetching rooms:", error);
+    } catch (error: any) {
+      console.error("Error fetching rooms:", error.response?.data || error.message);
+      console.error("Full API URL attempted:", `${API_BASE_URL}/api/rooms`);
       return [];
     }
   },
@@ -47,14 +48,19 @@ export const roomService = {
     startDateStr: string,
     endDateStr: string
   ): AvailabilityResponse {
-    // If no booking data or empty bookings, just check the general availability flag
+    // First check if room is generally available
+    if (!room.availability) {
+      return { isAvailable: false };
+    }
+
+    // If no booking data, room is available
     if (!room.bookings || room.bookings.length === 0) {
-      return { isAvailable: room.availability };
+      return { isAvailable: true };
     }
 
     // Convert input dates to Date objects for comparison
-    const startDate = new Date(startDateStr + "T00:00:00.000Z");
-    const endDate = new Date(endDateStr + "T00:00:00.000Z");
+    const startDate = new Date(startDateStr);
+    const endDate = new Date(endDateStr);
 
     const conflictingDates: { startDate: string; endDate: string }[] = [];
 
@@ -63,16 +69,17 @@ export const roomService = {
       const bookedStartDate = new Date(booking.startDate);
       const bookedEndDate = new Date(booking.endDate);
 
-      // Check for overlap - if any day in the requested range overlaps with a booked range
-      if (
-        // Case 1: Start date falls within an existing booking
-        (startDate >= bookedStartDate && startDate <= bookedEndDate) ||
-        // Case 2: End date falls within an existing booking
-        (endDate >= bookedStartDate && endDate <= bookedEndDate) ||
-        // Case 3: Booking falls completely within the requested date range
-        (startDate <= bookedStartDate && endDate >= bookedEndDate)
-      ) {
-        // Add this conflict to the list
+      // Reset time part to compare only dates
+      bookedStartDate.setHours(0, 0, 0, 0);
+      bookedEndDate.setHours(0, 0, 0, 0);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+
+      // Check for overlap
+      const hasOverlap = 
+        (startDate <= bookedEndDate && endDate >= bookedStartDate);
+
+      if (hasOverlap) {
         conflictingDates.push({
           startDate: booking.startDate,
           endDate: booking.endDate,
@@ -82,8 +89,7 @@ export const roomService = {
 
     return {
       isAvailable: conflictingDates.length === 0,
-      conflictingDates:
-        conflictingDates.length > 0 ? conflictingDates : undefined,
+      conflictingDates: conflictingDates.length > 0 ? conflictingDates : undefined,
     };
   },
 
@@ -108,9 +114,8 @@ export const roomService = {
   async getAvailableRoomsForDate(dateString: string): Promise<Room[]> {
     try {
       const allRooms = await this.getAllRooms();
-      const datePart = dateString.split("T")[0];
       return allRooms.filter((room) => {
-        return this.isRoomAvailableOnDate(room, datePart);
+        return room.availability && this.isRoomAvailableOnDate(room, dateString);
       });
     } catch (error) {
       console.error("Error getting available rooms:", error);
@@ -128,14 +133,11 @@ export const roomService = {
       const availabilityData: Record<string, { available: number }> = {};
 
       for (let day = 1; day <= daysInMonth; day++) {
-        const dateString = `${year}-${String(month + 1).padStart(
-          2,
-          "0"
-        )}-${String(day).padStart(2, "0")}`;
-
+        const dateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        
         let availableCount = 0;
         for (const room of allRooms) {
-          if (this.isRoomAvailableOnDate(room, dateString)) {
+          if (room.availability && this.isRoomAvailableOnDate(room, dateString)) {
             availableCount++;
           }
         }

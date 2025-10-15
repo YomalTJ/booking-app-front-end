@@ -19,6 +19,7 @@ import { authService } from "@/services/auth-service";
 const registerSchema = z
   .object({
     name: z.string().min(2, "Name must be at least 2 characters long"),
+    companyName: z.string().min(1, "Company name is required"),
     email: z.string().email("Invalid email address"),
     phoneNumber: z.string().regex(/^0\d{9}$/, "Invalid phone number"),
     password: z
@@ -54,6 +55,7 @@ const Register = () => {
     try {
       const response = await authService.register({
         name: data.name,
+        companyName: data.companyName,
         email: data.email,
         password: data.password,
         phoneNumber: data.phoneNumber,
@@ -65,6 +67,7 @@ const Register = () => {
         "user",
         JSON.stringify({
           name: response.name,
+          companyName: response.companyName,
           email: response.email,
         })
       );
@@ -72,6 +75,7 @@ const Register = () => {
       // Redirect to calendar view
       router.push("/");
     } catch (error) {
+      // Error handling is done in authService
     } finally {
       setIsLoading(false);
     }
@@ -94,6 +98,15 @@ const Register = () => {
               placeholder="Enter your full name"
               register={register("name")}
               error={errors.name?.message}
+            />
+
+            <FormInput
+              id="companyName"
+              type="text"
+              label="Company Name"
+              placeholder="Enter your company name"
+              register={register("companyName")}
+              error={errors.companyName?.message}
             />
 
             <FormInput
