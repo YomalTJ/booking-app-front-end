@@ -21,13 +21,13 @@ const registerSchema = z
     name: z.string().min(2, "Name must be at least 2 characters long"),
     companyName: z.string().min(1, "Company name is required"),
     email: z.string().email("Invalid email address"),
-    phoneNumber: z.string().regex(/^0\d{9}$/, "Invalid phone number"),
+    phoneNumber: z.string().regex(/^0\d{9}$/, "Invalid phone number (format: 0712345678)"),
     password: z
       .string()
       .min(6, "Password must be at least 6 characters long")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/,
-        "Password must include uppercase, lowercase, number, and special character"
+        "Password must include uppercase, lowercase, number, and special character (@$!%*?&)"
       ),
     confirmPassword: z.string(),
   })
@@ -66,16 +66,17 @@ const Register = () => {
       localStorage.setItem(
         "user",
         JSON.stringify({
-          name: response.name,
-          companyName: response.companyName,
-          email: response.email,
+          name: response.user.name,
+          companyName: response.user.companyName,
+          email: response.user.email,
         })
       );
 
-      // Redirect to calendar view
+      // Redirect to dashboard
       router.push("/");
+      window.location.href = "/";
     } catch (error) {
-      // Error handling is done in authService
+      console.error("Registration error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +87,7 @@ const Register = () => {
       <Toaster position="top-right" />
       <AuthLayout>
         {/* Left side - Sign up form */}
-        <FormContainer title="Create an account">
+        <FormContainer title="Create your account">
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="w-full max-w-md space-y-4"
@@ -94,7 +95,7 @@ const Register = () => {
             <FormInput
               id="name"
               type="text"
-              label="Name"
+              label="Full Name"
               placeholder="Enter your full name"
               register={register("name")}
               error={errors.name?.message}
@@ -112,7 +113,7 @@ const Register = () => {
             <FormInput
               id="email"
               type="email"
-              label="Email"
+              label="Email Address"
               placeholder="Enter your email address"
               register={register("email")}
               error={errors.email?.message}
@@ -122,7 +123,7 @@ const Register = () => {
               id="phoneNumber"
               type="tel"
               label="Phone Number"
-              placeholder="Enter your phone number"
+              placeholder="Enter your phone number (e.g., 0712345678)"
               register={register("phoneNumber")}
               error={errors.phoneNumber?.message}
             />
@@ -131,7 +132,7 @@ const Register = () => {
               id="password"
               type="password"
               label="Password"
-              placeholder="Enter your password"
+              placeholder="Create a strong password"
               register={register("password")}
               error={errors.password?.message}
             />
@@ -145,17 +146,26 @@ const Register = () => {
               error={errors.confirmPassword?.message}
             />
 
-            <div className="flex justify-center">
+            <div className="flex justify-center pt-2">
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? "Creating Account..." : "Create Account"}
               </Button>
             </div>
+
+            <p className="text-center text-sm text-gray-600 pt-4 border-t border-gray-200">
+              Already have an account?{" "}
+              <Link href="/auth/login">
+                <span className="text-orange-600 hover:text-orange-700 font-semibold cursor-pointer">
+                  Log in here
+                </span>
+              </Link>
+            </p>
           </form>
         </FormContainer>
 
-        {/* Right side - Blue section with image */}
+        {/* Right side - Blue Container with Orange gradient */}
         <BlueContainer
-          title="Already have an account ?"
+          title="Already have an account?"
           subtitle="Log in now to continue exploring your dashboard and manage your account with ease."
           buttonText="SIGN IN"
           buttonLink="/auth/login"
