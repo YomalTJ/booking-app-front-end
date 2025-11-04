@@ -96,13 +96,13 @@ const Login = () => {
               error={errors.password?.message}
             />
 
-            <div className="flex justify-end">
+            {/* <div className="flex justify-end">
               <Link href="/auth/forgot-password">
                 <p className="text-sm text-[#5995fd] hover:underline">
                   Forgot your password?
                 </p>
               </Link>
-            </div>
+            </div> */}
 
             <div className="flex justify-center">
               <Button type="submit" disabled={isLoading}>
