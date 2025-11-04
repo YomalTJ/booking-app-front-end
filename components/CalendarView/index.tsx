@@ -1,5 +1,3 @@
-// components/CalendarView/index.tsx
-
 "use client";
 
 import React, { useState } from "react";
