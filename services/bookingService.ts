@@ -1,84 +1,172 @@
-import axios from "axios";
+const API_BASE_URL = "/api/bookings";
 
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-export interface BookingResponse {
-  message: string;
-  booking: any;
-}
-
-export interface ErrorResponse {
-  message: string;
-  conflictingDates?: {
-    startDate: string;
-    endDate: string;
-  };
+export interface BookingPayload {
+  roomId: string;
+  bookingDate: string;
+  startTime?: string;
+  endTime?: string;
+  isFullDayBooking?: boolean;
+  notes?: string;
 }
 
 export const bookingService = {
-  createBooking: async (
-    token: string,
+  async checkAvailability(
     roomId: string,
-    startDate: string,
-    endDate: string
-  ): Promise<BookingResponse> => {
-    const response = await axios.post(
-      `${API_URL}/api/bookings`, // Added /api
-      {
+    bookingDate: string,
+    startTime?: string,
+    endTime?: string
+  ) {
+    try {
+      // Ensure date is in YYYY-MM-DD format
+      const dateStr = this.formatDateForAPI(bookingDate);
+
+      console.log("Checking availability with params:", {
         roomId,
-        startDate,
-        endDate,
-      },
-      {
+        bookingDate: dateStr,
+        startTime,
+        endTime,
+      });
+
+      const response = await fetch(`${API_BASE_URL}/check-availability`, {
+        method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          roomId,
+          bookingDate: dateStr,
+          startTime,
+          endTime,
+          checkType: startTime && endTime ? "timeSlot" : "day",
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to check availability");
       }
-    );
 
-    return response.data;
+      return await response.json();
+    } catch (error: any) {
+      console.error("Availability check error:", error);
+      throw error;
+    }
   },
 
-  getUserBookings: async (token: string) => {
-    const response = await axios.get(`${API_URL}/api/bookings`, {
-      // Added /api
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.data;
-  },
+  async createBooking(payload: BookingPayload) {
+    try {
+      const token = localStorage.getItem("token");
 
-  updateBooking: async (
-    token: string,
-    bookingId: string,
-    startDate: string,
-    endDate: string
-  ) => {
-    const response = await axios.put(
-      `${API_URL}/api/bookings/${bookingId}`, // Added /api
-      { startDate, endDate },
-      {
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      // Ensure date is in YYYY-MM-DD format
+      const dateStr = this.formatDateForAPI(payload.bookingDate);
+
+      console.log("Creating booking with payload:", {
+        ...payload,
+        bookingDate: dateStr,
+      });
+
+      const response = await fetch(`${API_BASE_URL}/create`, {
+        method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({
+          ...payload,
+          bookingDate: dateStr,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create booking");
       }
-    );
-    return response.data;
+
+      return await response.json();
+    } catch (error: any) {
+      console.error("Booking creation error:", error);
+      throw error;
+    }
   },
 
-  deleteBooking: async (token: string, bookingId: string) => {
-    const response = await axios.delete(
-      `${API_URL}/api/bookings/${bookingId}`,
-      {
-        // Added /api
+  async getUserBookings(token: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/user-bookings`, {
+        method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
         },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch bookings");
       }
-    );
-    return response.data;
+
+      const data = await response.json();
+      return data.bookings;
+    } catch (error: any) {
+      console.error("Fetch bookings error:", error);
+      throw error;
+    }
+  },
+
+  async cancelBooking(bookingId: string) {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(`${API_BASE_URL}/cancel`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ bookingId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to cancel booking");
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error("Cancel booking error:", error);
+      throw error;
+    }
+  },
+
+  // Helper function to format date for API (YYYY-MM-DD)
+  formatDateForAPI(dateInput: string | Date | number): string {
+    let date: Date;
+
+    if (typeof dateInput === "string") {
+      // If already in YYYY-MM-DD format, return as is
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+        return dateInput;
+      }
+      date = new Date(dateInput);
+    } else if (typeof dateInput === "number") {
+      // If it's a day number (1-31), construct date with current month/year
+      const today = new Date();
+      date = new Date(today.getFullYear(), today.getMonth(), dateInput);
+    } else {
+      date = dateInput;
+    }
+
+    // Format as YYYY-MM-DD without timezone conversion
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
   },
 };
