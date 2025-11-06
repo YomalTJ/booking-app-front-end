@@ -62,7 +62,6 @@ const AvailableOffices: React.FC<AvailableOfficesProps> = ({
 
     setIsBooking(true);
     try {
-      console.log("Booking with date string:", selectedDate);
 
       const result = await bookingService.createBooking({
         roomId: selectedOffice,

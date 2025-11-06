@@ -26,15 +26,6 @@ export async function POST(request: NextRequest) {
     const { roomId, bookingDate, startTime, endTime, isFullDayBooking, notes } =
       await request.json();
 
-    console.log("Creating booking with data:", {
-      roomId,
-      bookingDate,
-      startTime,
-      endTime,
-      isFullDayBooking,
-      userId: decoded.userId,
-    });
-
     if (!roomId || !bookingDate) {
       return NextResponse.json(
         { message: "Please provide room ID and booking date" },
@@ -56,8 +47,6 @@ export async function POST(request: NextRequest) {
       dateObj = new Date(bookingDate);
     }
 
-    console.log("Parsed date object (UTC):", dateObj.toISOString());
-
     // Check availability
     const availability = await checkTimeSlotAvailability(
       roomId,
@@ -65,8 +54,6 @@ export async function POST(request: NextRequest) {
       isFullDayBooking ? "00:00" : startTime,
       isFullDayBooking ? "23:59" : endTime
     );
-
-    console.log("Availability check result:", availability);
 
     if (!availability.isAvailable) {
       return NextResponse.json(
@@ -87,13 +74,6 @@ export async function POST(request: NextRequest) {
       endTime: isFullDayBooking ? "23:59" : endTime,
       isFullDayBooking: isFullDayBooking || false,
       notes: notes || "",
-    });
-
-    console.log("Booking created:", {
-      id: booking._id,
-      bookingDate: booking.bookingDate.toISOString(),
-      startTime: booking.startTime,
-      endTime: booking.endTime,
     });
 
     await booking.populate("roomId");

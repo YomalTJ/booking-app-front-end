@@ -12,14 +12,6 @@ export async function POST(request: NextRequest) {
     const { roomId, bookingDate, startTime, endTime, checkType } =
       await request.json();
 
-    console.log("Availability check request:", {
-      roomId,
-      bookingDate,
-      startTime,
-      endTime,
-      checkType,
-    });
-
     // Validation
     if (!roomId || !bookingDate) {
       return NextResponse.json(
@@ -31,7 +23,6 @@ export async function POST(request: NextRequest) {
     // Check day availability
     if (checkType === "day") {
       const result = await getDayAvailabilityStatus(roomId, bookingDate);
-      console.log("Day availability result:", result);
       return NextResponse.json(result, { status: 200 });
     }
 
@@ -50,7 +41,6 @@ export async function POST(request: NextRequest) {
         startTime,
         endTime
       );
-      console.log("Time slot availability result:", result);
       return NextResponse.json(result, { status: 200 });
     }
 

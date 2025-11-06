@@ -39,14 +39,10 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
         const dayStr = String(selectedDate).padStart(2, "0");
         const bookingDate = `${currentYear}-${month}-${dayStr}`;
 
-        console.log("Loading slots for date:", bookingDate);
-
         const result = await bookingService.checkAvailability(
           selectedRoomId,
           bookingDate
         );
-
-        console.log("Availability result:", result);
 
         if (result.type === "fully_booked") {
           toast.error("This room is fully booked for this day.");
