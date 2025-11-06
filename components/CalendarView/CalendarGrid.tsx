@@ -64,12 +64,36 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
     days.push(i);
   }
 
+  const isPastDate = (day: number): boolean => {
+    const today = new Date();
+    const selectedDate = new Date(currentYear, monthIndex, day);
+
+    // Compare dates without time
+    const todayDate = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
+    const selectedDateOnly = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate()
+    );
+
+    return selectedDateOnly < todayDate;
+  };
+
   const getStatusColor = (day: number | null): string => {
     if (!day) return "bg-transparent";
 
     // Fixed: Direct comparison without creating new dates
     if (day === selectedDate) {
       return "border-2 border-orange-500 bg-orange-100";
+    }
+
+    // Disable past dates
+    if (isPastDate(day)) {
+      return "bg-gray-100 text-gray-400 cursor-not-allowed";
     }
 
     const status = dayStatus[day] || "loading";
@@ -90,6 +114,12 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
 
   const handleDateClick = (day: number | null) => {
     if (!day || dayStatus[day] === "loading") return;
+
+    // Disable past dates
+    if (isPastDate(day)) {
+      toast.error("Cannot select past dates");
+      return;
+    }
 
     if (dayStatus[day] === "fully_booked") {
       toast.error("This room is fully booked for the entire day.");

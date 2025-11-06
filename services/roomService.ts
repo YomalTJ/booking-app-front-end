@@ -34,7 +34,6 @@ export const roomService = {
   async getAllRooms(): Promise<Room[]> {
     try {
       const response = await axios.get<RoomResponse>(`${API_BASE_URL}/api/rooms`);
-      console.log("Rooms API Response:", response.data);
       return response.data.data;
     } catch (error: any) {
       console.error("Error fetching rooms:", error.response?.data || error.message);

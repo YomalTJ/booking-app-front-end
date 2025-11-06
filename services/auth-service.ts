@@ -15,6 +15,18 @@ export interface RegisterCredentials {
   phoneNumber: string;
 }
 
+export interface UpdateProfileData {
+  name: string;
+  companyName: string;
+  email: string;
+}
+
+export interface ResetPasswordData {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export const authService = {
   async login(credentials: LoginCredentials) {
     try {
@@ -86,6 +98,104 @@ export const authService = {
       return data;
     } catch (error: any) {
       toast.error(error.message || "Registration failed");
+      throw error;
+    }
+  },
+
+  async updateProfile(data: UpdateProfileData) {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(`${API_BASE_URL}/profile/update`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update profile");
+      }
+
+      const result = await response.json();
+      toast.success(result.message || "Profile updated successfully!");
+      return result;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update profile");
+      throw error;
+    }
+  },
+
+  async resetPassword(data: ResetPasswordData) {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(`${API_BASE_URL}/password/reset`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to reset password");
+      }
+
+      const result = await response.json();
+      toast.success(result.message || "Password updated successfully!");
+      return result;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to reset password");
+      throw error;
+    }
+  },
+
+  async deleteAccount() {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(`${API_BASE_URL}/account/delete`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to delete account");
+      }
+
+      const result = await response.json();
+
+      // Clear localStorage
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      }
+
+      toast.success(result.message || "Account deleted successfully");
+      return result;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete account");
       throw error;
     }
   },

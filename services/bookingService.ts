@@ -20,13 +20,6 @@ export const bookingService = {
       // Ensure date is in YYYY-MM-DD format
       const dateStr = this.formatDateForAPI(bookingDate);
 
-      console.log("Checking availability with params:", {
-        roomId,
-        bookingDate: dateStr,
-        startTime,
-        endTime,
-      });
-
       const response = await fetch(`${API_BASE_URL}/check-availability`, {
         method: "POST",
         headers: {
@@ -63,11 +56,6 @@ export const bookingService = {
 
       // Ensure date is in YYYY-MM-DD format
       const dateStr = this.formatDateForAPI(payload.bookingDate);
-
-      console.log("Creating booking with payload:", {
-        ...payload,
-        bookingDate: dateStr,
-      });
 
       const response = await fetch(`${API_BASE_URL}/create`, {
         method: "POST",

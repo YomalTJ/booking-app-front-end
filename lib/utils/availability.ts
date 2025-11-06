@@ -62,12 +62,6 @@ export const getBookingsForDate = async (
     const endOfDay = new Date(dateObj);
     endOfDay.setUTCHours(23, 59, 59, 999);
 
-    console.log("Query date range (UTC):", {
-      startOfDay: dateObj.toISOString(),
-      endOfDay: endOfDay.toISOString(),
-      roomId: roomId,
-    });
-
     const bookings = await Booking.find({
       roomId,
       bookingDate: {
@@ -76,11 +70,6 @@ export const getBookingsForDate = async (
       },
       status: { $in: ["active", "completed"] },
     });
-
-    console.log(
-      `Found ${bookings.length} bookings for room ${roomId}`,
-      bookings
-    );
 
     return bookings;
   } catch (error) {

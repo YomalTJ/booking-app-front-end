@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { FaSave } from "react-icons/fa";
 import FormInput from "./FormInput";
 import { authService } from "@/services/auth-service";
 import { toast, Toaster } from "react-hot-toast";
@@ -11,6 +12,7 @@ const ProfileForm = () => {
     companyName: "",
     email: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   // Load user data from localStorage on component mount
   useEffect(() => {
@@ -33,9 +35,15 @@ const ProfileForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!userData.name || !userData.companyName || !userData.email) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      await authService.updateProfile(userData);
-      
+      const result = await authService.updateProfile(userData);
+
       // Update localStorage with new user data
       const userStr = localStorage.getItem("user");
       if (userStr) {
@@ -43,19 +51,23 @@ const ProfileForm = () => {
         const updatedUser = { ...user, ...userData };
         localStorage.setItem("user", JSON.stringify(updatedUser));
       }
-      
-      toast.success("Profile updated successfully!");
     } catch (error) {
       console.error("Failed to update profile:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="bg-transparent text-white">
+    <div>
       <Toaster position="top-right" />
       <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-2">Profile information</h2>
-        <p className="text-gray-300">Update your name, company, and email address</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+          Profile Information
+        </h2>
+        <p className="text-gray-600">
+          Update your name, company, and email address
+        </p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -63,10 +75,11 @@ const ProfileForm = () => {
           <FormInput
             id="name"
             name="name"
-            label="Name"
+            label="Full Name"
             type="text"
             value={userData.name}
             onChange={handleInputChange}
+            disabled={isLoading}
           />
           <FormInput
             id="companyName"
@@ -75,22 +88,26 @@ const ProfileForm = () => {
             type="text"
             value={userData.companyName}
             onChange={handleInputChange}
+            disabled={isLoading}
           />
           <FormInput
             id="email"
             name="email"
-            label="Email address"
+            label="Email Address"
             type="email"
             value={userData.email}
             onChange={handleInputChange}
+            disabled={isLoading}
           />
         </div>
 
         <button
           type="submit"
-          className="px-6 py-3 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700 cursor-pointer"
+          disabled={isLoading}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-600 cursor-pointer"
         >
-          Save
+          <FaSave />
+          {isLoading ? "Saving..." : "Save Changes"}
         </button>
       </form>
     </div>

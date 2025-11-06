@@ -29,7 +29,6 @@ export default function CalendarView() {
   const [showTimeSlots, setShowTimeSlots] = useState<boolean>(false);
 
   const handleDateClick = (day: number): void => {
-    console.log("Date clicked:", day);
     setSelectedDate(day);
     setShowTimeSlots(true);
   };
@@ -76,8 +75,6 @@ export default function CalendarView() {
     const year = currentYear;
     const month = String(monthIndex + 1).padStart(2, "0");
     const day = String(selectedDate).padStart(2, "0");
-
-    console.log("Selected date string:", `${year}-${month}-${day}`);
 
     return `${year}-${month}-${day}`;
   };
