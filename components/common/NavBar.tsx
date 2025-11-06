@@ -97,6 +97,16 @@ const Navbar = () => {
         {/* Desktop Links */}
         <div className="hidden lg:flex items-center space-x-8 flex-1 justify-center">
           <Link
+            href="/calendar-view"
+            className={`text-sm font-medium transition-colors ${
+              pathname === "/dashboard"
+                ? "text-orange-600 border-b-2 border-orange-600"
+                : "text-gray-600 hover:text-orange-600"
+            }`}
+          >
+            Calendar
+          </Link>
+          <Link
             href="/dashboard"
             className={`text-sm font-medium transition-colors ${
               pathname === "/dashboard"
