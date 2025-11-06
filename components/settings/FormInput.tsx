@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React from "react";
 
@@ -10,6 +10,7 @@ interface FormInputProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 const FormInput: React.FC<FormInputProps> = ({
@@ -19,11 +20,15 @@ const FormInput: React.FC<FormInputProps> = ({
   type,
   value,
   onChange,
-  placeholder
+  placeholder,
+  disabled = false,
 }) => {
   return (
     <div>
-      <label htmlFor={id} className="block text-lg mb-2">
+      <label
+        htmlFor={id}
+        className="block text-sm font-semibold text-gray-700 mb-2"
+      >
         {label}
       </label>
       <input
@@ -33,7 +38,8 @@ const FormInput: React.FC<FormInputProps> = ({
         value={value}
         onChange={onChange}
         placeholder={placeholder || label}
-        className="w-full px-4 py-3 bg-gray-600 bg-opacity-50 border border-gray-500 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5995fd]"
+        disabled={disabled}
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition disabled:bg-gray-100 disabled:cursor-not-allowed"
       />
     </div>
   );
