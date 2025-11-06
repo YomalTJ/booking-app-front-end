@@ -1,277 +1,240 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  FaBuilding,
-  FaCalendarAlt,
-  FaUser,
-  FaEdit,
-  FaTrash,
-} from "react-icons/fa";
-import { FiX, FiCheck } from "react-icons/fi";
-import Image from "next/image";
 import { bookingService } from "@/services/bookingService";
-import { toast } from "react-hot-toast";
-
-interface Booking {
-  _id: string;
-  userId: string;
-  roomId: {
-    _id: string;
-    name: string;
-    description: string;
-    capacity: number;
-    image: string;
-    availability: boolean;
-  };
-  startDate: string;
-  endDate: string;
-  __v: number;
-}
+import { Booking } from "@/types/booking";
+import toast from "react-hot-toast";
 
 interface BookingCardProps {
   booking: Booking;
-  onUpdate?: () => void;
+  onUpdate: () => void;
 }
 
 const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editStartDate, setEditStartDate] = useState(
-    booking.startDate.split("T")[0]
-  );
-  const [editEndDate, setEditEndDate] = useState(booking.endDate.split("T")[0]);
-  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
+      weekday: "short",
       year: "numeric",
-      month: "long",
+      month: "short",
       day: "numeric",
     });
   };
 
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    // Reset to original dates
-    setEditStartDate(booking.startDate.split("T")[0]);
-    setEditEndDate(booking.endDate.split("T")[0]);
-  };
-
-  const handleUpdate = async () => {
+  const formatTime = (time: string) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast.error("Please log in to update bookings");
-        return;
-      }
-
-      if (new Date(editStartDate) > new Date(editEndDate)) {
-        toast.error("End date must be after start date");
-        return;
-      }
-
-      await bookingService.updateBooking(
-        token,
-        booking._id,
-        editStartDate,
-        editEndDate
-      );
-
-      toast.success("Booking updated successfully");
-      setIsEditing(false);
-      if (onUpdate) onUpdate();
-    } catch (error) {
-      console.error("Error updating booking:", error);
-      toast.error("Failed to update booking. Please try again.");
+      const [hours, minutes] = time.split(":").map(Number);
+      const date = new Date();
+      date.setHours(hours, minutes, 0);
+      return date.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      return time;
     }
   };
 
-  const handleDeleteClick = () => {
-    setShowDeleteConfirmation(true);
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      active: {
+        bg: "bg-green-100",
+        text: "text-green-800",
+        label: "Active",
+        icon: "✓",
+      },
+      completed: {
+        bg: "bg-blue-100",
+        text: "text-blue-800",
+        label: "Completed",
+        icon: "✓",
+      },
+      cancelled: {
+        bg: "bg-red-100",
+        text: "text-red-800",
+        label: "Cancelled",
+        icon: "×",
+      },
+    };
+
+    const config =
+      statusConfig[status as keyof typeof statusConfig] || statusConfig.active;
+
+    return (
+      <div
+        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full ${config.bg} ${config.text} text-xs font-semibold`}
+      >
+        <span>{config.icon}</span>
+        {config.label}
+      </div>
+    );
   };
 
-  const handleDeleteConfirm = async () => {
-    setIsDeleting(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast.error("Please log in to delete bookings");
-        return;
-      }
+  const handleCancel = async () => {
+    if (booking.status !== "active") {
+      toast.error("Only active bookings can be cancelled");
+      return;
+    }
 
-      await bookingService.deleteBooking(token, booking._id);
-      toast.success("Booking deleted successfully");
-      if (onUpdate) onUpdate();
-    } catch (error) {
-      console.error("Error deleting booking:", error);
-      toast.error("Failed to delete booking. Please try again.");
+    if (
+      !window.confirm(
+        "Are you sure you want to cancel this booking? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    setIsCancelling(true);
+    try {
+      await bookingService.cancelBooking(booking._id);
+      toast.success("Booking cancelled successfully");
+      onUpdate();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to cancel booking");
     } finally {
-      setIsDeleting(false);
-      setShowDeleteConfirmation(false);
+      setIsCancelling(false);
     }
   };
 
-  const handleDeleteCancel = () => {
-    setShowDeleteConfirmation(false);
-  };
+  const isUpcoming =
+    new Date(booking.bookingDate) > new Date() && booking.status === "active";
+  const isPast =
+    new Date(booking.bookingDate) < new Date() &&
+    booking.status !== "cancelled";
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden relative">
-      {/* Action buttons */}
-      <div className="absolute top-2 right-2 flex space-x-2 z-10">
-        <button
-          onClick={handleEdit}
-          className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition cursor-pointer"
-          title="Edit booking"
-        >
-          <FaEdit size={16} />
-        </button>
-        <button
-          onClick={handleDeleteClick}
-          className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition cursor-pointer"
-          title="Delete booking"
-          disabled={isDeleting}
-        >
-          {isDeleting ? (
-            <span className="animate-spin">...</span>
-          ) : (
-            <FaTrash size={16} />
-          )}
-        </button>
-      </div>
+    <div
+      className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow ${
+        booking.status === "cancelled" ? "opacity-75" : ""
+      }`}
+    >
+      {/* Room Header */}
+      <div className="h-32 bg-gradient-to-br from-orange-400 to-orange-600 flex flex-col items-center justify-center text-white relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-20 h-20 bg-orange-400 rounded-full mix-blend-multiply filter blur-xl opacity-20"></div>
 
-      {/* Room Image */}
-      <div className="relative h-48 w-full">
-        <Image
-          src={booking.roomId.image || "/placeholder-office.jpg"}
-          alt={booking.roomId.name}
-          fill
-          className="object-cover"
-        />
-      </div>
-
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-4">
-          <h3 className="text-xl font-bold text-gray-800">
-            {booking.roomId.name}
-          </h3>
-        </div>
-
-        {/* Booking details */}
-        <div className="space-y-3 mb-4">
-          <div className="flex items-center text-gray-700">
-            <FaCalendarAlt className="mr-2 text-gray-500" />
-            <div>
-              <span className="font-medium">From: </span>
-              {formatDate(booking.startDate)}
-            </div>
-          </div>
-          <div className="flex items-center text-gray-700">
-            <FaCalendarAlt className="mr-2 text-gray-500" />
-            <div>
-              <span className="font-medium">To: </span>
-              {formatDate(booking.endDate)}
-            </div>
-          </div>
-          <div className="flex items-center text-gray-700">
-            <FaUser className="mr-2 text-gray-500" />
-            <div>
-              <span className="font-medium">Capacity: </span>
-              {booking.roomId.capacity} persons
-            </div>
-          </div>
-        </div>
-
-        {/* Room description */}
-        <p className="text-gray-600 text-sm mt-4">
-          {booking.roomId.description}
+        <div className="text-4xl mb-2">🏢</div>
+        <p className="font-semibold text-center px-4">{booking.roomId.name}</p>
+        <p className="text-xs text-orange-100 mt-1">
+          Floor {booking.roomId.floor}
         </p>
       </div>
 
-      {/* Edit Popup */}
-      {isEditing && (
-        <div className="absolute inset-0 bg-white bg-opacity-90 p-6 flex flex-col justify-center">
-          <h3 className="text-lg font-bold mb-4">Edit Booking Dates</h3>
+      {/* Booking Details */}
+      <div className="p-4">
+        {/* Description */}
+        <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+          {booking.roomId.description}
+        </p>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Date
-              </label>
-              <input
-                type="date"
-                value={editStartDate}
-                onChange={(e) => setEditStartDate(e.target.value)}
-                className="w-full p-2 border rounded text-black"
-                min={new Date().toISOString().split("T")[0]}
-              />
-            </div>
+        {/* Status Badge */}
+        <div className="mb-4">{getStatusBadge(booking.status)}</div>
 
+        {/* Date and Time */}
+        <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg p-4 mb-4 space-y-2 border border-orange-100">
+          <div className="flex items-start gap-3">
+            <span className="text-lg">📅</span>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Date
-              </label>
-              <input
-                type="date"
-                value={editEndDate}
-                onChange={(e) => setEditEndDate(e.target.value)}
-                className="w-full p-2 border rounded text-black"
-                min={editStartDate}
-              />
+              <p className="text-xs text-gray-600 font-medium">Date</p>
+              <p className="text-sm font-semibold text-gray-800">
+                {formatDate(booking.bookingDate)}
+              </p>
             </div>
           </div>
 
-          <div className="flex justify-end space-x-2 mt-6">
-            <button
-              onClick={handleCancelEdit}
-              className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 transition cursor-pointer"
-            >
-              <FiX size={18} className="inline mr-1" />
-              Cancel
-            </button>
-            <button
-              onClick={handleUpdate}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition cursor-pointer"
-            >
-              <FiCheck size={18} className="inline mr-1" />
-              Update
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Popup */}
-      {showDeleteConfirmation && (
-        <div className="absolute inset-0 backdrop-blur-md flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-md text-center max-w-xs">
-            <h3 className="text-lg font-bold mb-4 text-gray-800">
-              Are you sure you want to delete this booking?
-            </h3>
-            <div className="flex justify-center gap-4">
-              <button
-                onClick={handleDeleteCancel}
-                className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 transition cursor-pointer"
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition cursor-pointer"
-                disabled={isDeleting}
-              >
-                {isDeleting ? "Deleting..." : "Delete"}
-              </button>
+          <div className="flex items-start gap-3">
+            <span className="text-lg">⏰</span>
+            <div>
+              <p className="text-xs text-gray-600 font-medium">Time</p>
+              <p className="text-sm font-semibold text-gray-800">
+                {booking.isFullDayBooking
+                  ? "Full Day (00:00 - 23:59)"
+                  : `${formatTime(booking.startTime)} - ${formatTime(
+                      booking.endTime
+                    )}`}
+              </p>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Room Details */}
+        <div className="flex gap-4 mb-4 text-sm">
+          <div className="flex items-center gap-2 text-gray-700">
+            <span>👥</span>
+            <span>Capacity: {booking.roomId.capacity}</span>
+          </div>
+        </div>
+
+        {/* Notes */}
+        {booking.notes && (
+          <div className="mb-4 p-3 bg-blue-50 rounded border border-blue-200">
+            <p className="text-xs font-semibold text-gray-700 mb-1">Notes:</p>
+            <p className="text-sm text-gray-600">{booking.notes}</p>
+          </div>
+        )}
+
+        {/* Booking Dates */}
+        <div className="text-xs text-gray-500 mb-4 space-y-1">
+          <p>
+            Booked on:{" "}
+            {new Date(booking.createdAt).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </p>
+        </div>
+
+        {/* Action Button */}
+        {booking.status === "active" && (
+          <button
+            onClick={handleCancel}
+            disabled={isCancelling}
+            className="w-full py-2 px-4 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+          >
+            {isCancelling ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white"></div>
+                Cancelling...
+              </span>
+            ) : (
+              "Cancel Booking"
+            )}
+          </button>
+        )}
+
+        {booking.status === "cancelled" && (
+          <div className="w-full py-2 px-4 bg-gray-200 text-gray-600 text-center rounded-lg font-semibold">
+            Booking Cancelled
+          </div>
+        )}
+
+        {booking.status === "completed" && (
+          <div className="w-full py-2 px-4 bg-blue-100 text-blue-700 text-center rounded-lg font-semibold">
+            Booking Completed
+          </div>
+        )}
+
+        {/* Booking Timeline Indicator */}
+        {booking.status === "active" && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            {isUpcoming ? (
+              <p className="text-xs text-green-600 font-medium text-center">
+                ✓ Upcoming Booking
+              </p>
+            ) : isPast ? (
+              <p className="text-xs text-gray-600 font-medium text-center">
+                📌 Past Booking
+              </p>
+            ) : null}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

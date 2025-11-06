@@ -1,18 +1,60 @@
-// components/CalendarView/CalendarGrid.tsx
-
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { CalendarGridProps } from "./types";
-import { MONTH_NAMES, WEEK_DAYS, AVAILABILITY_STATUS } from "./constants";
+import { MONTH_NAMES, WEEK_DAYS } from "./constants";
+import { bookingService } from "@/services/bookingService";
+import toast from "react-hot-toast";
+
+interface DayStatus {
+  [key: number]: "available" | "fully_booked" | "partially_booked" | "loading";
+}
 
 const CalendarGrid: React.FC<CalendarGridProps> = ({
   currentMonth,
   currentYear,
   selectedDate,
   onDateClick,
+  selectedRoomId,
 }) => {
+  const [dayStatus, setDayStatus] = useState<DayStatus>({});
+
   const monthIndex = MONTH_NAMES.indexOf(currentMonth);
   const firstDay = new Date(currentYear, monthIndex, 1).getDay();
   const daysInMonth = new Date(currentYear, monthIndex + 1, 0).getDate();
+
+  useEffect(() => {
+    // Check availability for all days in the month
+    const checkAllDays = async () => {
+      if (!selectedRoomId) return;
+
+      const newDayStatus: DayStatus = {};
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        // Create date in YYYY-MM-DD format (local time, no timezone conversion)
+        const year = currentYear;
+        const month = String(monthIndex + 1).padStart(2, "0");
+        const dayStr = String(day).padStart(2, "0");
+        const bookingDate = `${year}-${month}-${dayStr}`;
+
+        try {
+          newDayStatus[day] = "loading";
+
+          const result = await bookingService.checkAvailability(
+            selectedRoomId,
+            bookingDate
+          );
+
+          newDayStatus[day] = result.type;
+        } catch (error) {
+          console.error(`Error checking day ${day}:`, error);
+          newDayStatus[day] = "loading";
+        }
+      }
+
+      setDayStatus(newDayStatus);
+    };
+
+    checkAllDays();
+  }, [selectedRoomId, currentMonth, currentYear, daysInMonth, monthIndex]);
 
   const days: (number | null)[] = [];
   for (let i = 0; i < firstDay; i++) {
@@ -22,14 +64,40 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
     days.push(i);
   }
 
-  const getStatusColor = (day: number | null, status: string): string => {
+  const getStatusColor = (day: number | null): string => {
+    if (!day) return "bg-transparent";
+
+    // Fixed: Direct comparison without creating new dates
     if (day === selectedDate) {
-      return "border-2 border-blue-400 bg-blue-100";
+      return "border-2 border-orange-500 bg-orange-100";
     }
-    if (status === "available") return "bg-green-600 text-white";
-    if (status === "booked") return "bg-red-600 text-white";
-    if (status === "partially") return "bg-yellow-200 text-gray-800";
-    return "bg-gray-100 text-gray-700";
+
+    const status = dayStatus[day] || "loading";
+
+    switch (status) {
+      case "available":
+        return "bg-green-500 text-white hover:bg-green-600";
+      case "fully_booked":
+        return "bg-red-500 text-white cursor-not-allowed hover:bg-red-600";
+      case "partially_booked":
+        return "bg-yellow-400 text-gray-800 hover:bg-yellow-500";
+      case "loading":
+        return "bg-gray-200 text-gray-600 animate-pulse";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
+  const handleDateClick = (day: number | null) => {
+    if (!day || dayStatus[day] === "loading") return;
+
+    if (dayStatus[day] === "fully_booked") {
+      toast.error("This room is fully booked for the entire day.");
+      return;
+    }
+
+    // Pass the day number directly
+    onDateClick(day);
   };
 
   return (
@@ -46,17 +114,13 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
         {days.map((day, idx) => (
           <button
             key={idx}
-            onClick={() => day && onDateClick(day)}
-            disabled={!day}
+            onClick={() => handleDateClick(day)}
+            disabled={!day || dayStatus[day] === "loading"}
             className={`
               aspect-square flex items-center justify-center rounded text-sm font-medium
-              transition-all cursor-pointer
-              ${
-                day
-                  ? getStatusColor(day, AVAILABILITY_STATUS[day] || "")
-                  : "bg-transparent"
-              }
-              ${day ? "hover:opacity-80" : ""}
+              transition-all
+              ${getStatusColor(day)}
+              ${day ? "cursor-pointer" : ""}
             `}
           >
             {day}
@@ -65,22 +129,18 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-6 text-sm">
+      <div className="flex flex-wrap gap-4 text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-green-600 rounded"></div>
+          <div className="w-4 h-4 bg-green-500 rounded"></div>
           <span className="text-gray-700">Available</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-red-600 rounded"></div>
-          <span className="text-gray-700">Booked</span>
+          <div className="w-4 h-4 bg-red-500 rounded"></div>
+          <span className="text-gray-700">Fully Booked</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-yellow-200 rounded border border-gray-300"></div>
-          <span className="text-gray-700">Pending</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-yellow-100 rounded border border-gray-300"></div>
-          <span className="text-gray-700">Partially booked</span>
+          <div className="w-4 h-4 bg-yellow-400 rounded"></div>
+          <span className="text-gray-700">Partially Booked</span>
         </div>
       </div>
     </div>

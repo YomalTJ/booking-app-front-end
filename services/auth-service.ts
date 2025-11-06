@@ -1,7 +1,6 @@
-import axios from "axios";
 import { toast } from "react-hot-toast";
 
-const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth`;
+const API_BASE_URL = "/api/auth";
 
 export interface LoginCredentials {
   email: string;
@@ -16,105 +15,100 @@ export interface RegisterCredentials {
   phoneNumber: string;
 }
 
-export interface UpdateProfileData {
-  name: string;
-  companyName: string;
-  email: string;
-}
-
-export interface ResetPasswordData {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
-
 export const authService = {
-  // Login user
   async login(credentials: LoginCredentials) {
     try {
-      const response = await axios.post(`${API_BASE_URL}/login`, credentials);
+      const response = await fetch(`${API_BASE_URL}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+      });
 
-      localStorage.setItem("token", response.data.token);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Login failed");
+      }
+
+      const data = await response.json();
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            name: data.name,
+            companyName: data.companyName,
+            email: data.email,
+          })
+        );
+      }
 
       toast.success("Login successful!");
-
-      return response.data;
+      return data;
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || "Login failed";
-      toast.error(errorMessage);
+      toast.error(error.message || "Login failed");
       throw error;
     }
   },
 
-  // Register user
   async register(credentials: RegisterCredentials) {
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/register`,
-        credentials
-      );
+      const response = await fetch(`${API_BASE_URL}/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+      });
 
-      localStorage.setItem("token", response.data.token);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Registration failed");
+      }
+
+      const data = await response.json();
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            name: data.user.name,
+            companyName: data.user.companyName,
+            email: data.user.email,
+          })
+        );
+      }
 
       toast.success("Registration successful!");
-
-      return response.data;
+      return data;
     } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.message || "Registration failed";
-      toast.error(errorMessage);
+      toast.error(error.message || "Registration failed");
       throw error;
     }
   },
 
-  // Logout user
   logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
     toast.success("Logged out successfully");
   },
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem("token");
+    if (typeof window !== "undefined") {
+      return !!localStorage.getItem("token");
+    }
+    return false;
   },
 
-  async updateProfile(data: UpdateProfileData) {
-    try {
-      const response = await axios.put(`${API_BASE_URL}/profile`, data);
-      toast.success("Profile updated successfully!");
-      return response.data;
-    } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.message || "Profile update failed";
-      toast.error(errorMessage);
-      throw error;
+  getToken(): string | null {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("token");
     }
-  },
-
-  async resetPassword(data: ResetPasswordData) {
-    try {
-      const response = await axios.put(`${API_BASE_URL}/reset-password`, data);
-      toast.success("Password updated successfully!");
-      return response.data;
-    } catch (error: any) {
-      const errorMessage =
-        error.response?.data?.message || "Password update failed";
-      toast.error(errorMessage);
-      throw error;
-    }
+    return null;
   },
 };
-
-// Axios interceptor to add token to requests
-axios.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers["Authorization"] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);

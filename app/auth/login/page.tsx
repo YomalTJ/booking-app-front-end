@@ -52,8 +52,11 @@ const Login = () => {
         })
       );
 
+      // Force page refresh to update navbar
       router.push("/");
+      window.location.href = "/";
     } catch (error) {
+      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -63,25 +66,25 @@ const Login = () => {
     <>
       <Toaster position="top-right" />
       <AuthLayout>
-        {/* Left side */}
+        {/* Left side - Blue Container with Orange gradient */}
         <BlueContainer
           title="Don't have an account?"
           subtitle="Sign up now to unlock your dashboard, manage your workspace, and stay connected effortlessly."
-          buttonText="SIGN Up"
+          buttonText="SIGN UP"
           buttonLink="/auth/signup"
           imageSrc="/Auth/log.svg"
         />
 
-        {/* Right side */}
+        {/* Right side - Form */}
         <FormContainer title="Log in to your account">
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="w-full max-w-md space-y-4"
+            className="w-full max-w-md space-y-5"
           >
             <FormInput
               id="email"
               type="email"
-              label="Email"
+              label="Email Address"
               placeholder="Enter your email address"
               register={register("email")}
               error={errors.email?.message}
@@ -98,17 +101,26 @@ const Login = () => {
 
             <div className="flex justify-end">
               <Link href="/auth/forgot-password">
-                <p className="text-sm text-[#5995fd] hover:underline">
+                <p className="text-sm text-orange-600 hover:text-orange-700 font-medium transition-colors">
                   Forgot your password?
                 </p>
               </Link>
             </div>
 
-            <div className="flex justify-center">
+            <div className="flex justify-center pt-2">
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? "Logging in..." : "Log In"}
               </Button>
             </div>
+
+            <p className="text-center text-sm text-gray-600 pt-4 border-t border-gray-200">
+              Don't have an account?{" "}
+              <Link href="/auth/signup">
+                <span className="text-orange-600 hover:text-orange-700 font-semibold cursor-pointer">
+                  Sign up here
+                </span>
+              </Link>
+            </p>
           </form>
         </FormContainer>
       </AuthLayout>
