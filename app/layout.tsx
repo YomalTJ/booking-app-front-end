@@ -9,8 +9,8 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: "Workspace Management System",
-  description: "Modern workspace management solution",
+  title: "Co Working Cube",
+  description: "Affordable Office Spaces in Sri Lanka",
 };
 
 export default function RootLayout({
