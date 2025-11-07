@@ -110,13 +110,6 @@ const RoomSelector: React.FC<RoomSelectorProps> = ({
                   <span>👥 {room.capacity} people</span>
                   <span>🏢 Floor {room.floor}</span>
                 </div>
-                {!isAvailable && (
-                  <div className="mt-2">
-                    <span className="text-xs text-red-500">
-                      This room is currently unavailable
-                    </span>
-                  </div>
-                )}
               </button>
             );
           })}

@@ -115,8 +115,20 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
   };
 
   const handleCancel = async () => {
+    // Check if booking is active
     if (booking.status !== "active") {
       toast.error("Only active bookings can be cancelled");
+      return;
+    }
+
+    // Check 24-hour cancellation window
+    const bookingCreatedAt = new Date(booking.createdAt);
+    const now = new Date();
+    const hoursSinceBooking =
+      (now.getTime() - bookingCreatedAt.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceBooking > 24) {
+      toast.error("Bookings can only be cancelled within 24 hours of creation");
       return;
     }
 
@@ -329,6 +341,30 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
         {booking.status === "completed" && (
           <div className="w-full py-2 px-4 bg-blue-100 text-blue-700 text-center rounded-lg font-semibold">
             Booking Completed
+          </div>
+        )}
+
+        {booking.status === "active" && (
+          <div className="text-xs text-gray-500 mt-5">
+            {(() => {
+              const bookingCreatedAt = new Date(booking.createdAt);
+              const now = new Date();
+              const hoursSinceBooking =
+                (now.getTime() - bookingCreatedAt.getTime()) / (1000 * 60 * 60);
+              const hoursLeft = 24 - hoursSinceBooking;
+
+              if (hoursLeft > 0) {
+                return (
+                  <p className="text-green-600">
+                    ⏳ Can be cancelled within {Math.ceil(hoursLeft)} hours
+                  </p>
+                );
+              } else {
+                return (
+                  <p className="text-red-600">❌ Cancellation window expired</p>
+                );
+              }
+            })()}
           </div>
         )}
 
