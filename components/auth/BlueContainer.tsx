@@ -43,7 +43,7 @@ const BlueContainer: React.FC<BlueContainerProps> = ({
         </button>
       </Link>
 
-      <div className="mt-12 w-full max-w-md relative z-10">
+      {/* <div className="mt-12 w-full max-w-md relative z-10">
         <Image
           src={imageSrc}
           alt="Auth illustration"
@@ -52,7 +52,7 @@ const BlueContainer: React.FC<BlueContainerProps> = ({
           className="w-full drop-shadow-lg"
           priority
         />
-      </div>
+      </div> */}
     </div>
   );
 };
