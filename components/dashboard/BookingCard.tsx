@@ -1,8 +1,14 @@
+// BookingCard.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { bookingService } from "@/services/bookingService";
 import { Booking } from "@/types/booking";
+import {
+  calculateTimeRemaining,
+  getBookingDuration,
+  isBookingToday,
+} from "@/utils/timeUtils";
 import toast from "react-hot-toast";
 
 interface BookingCardProps {
@@ -12,6 +18,41 @@ interface BookingCardProps {
 
 const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
   const [isCancelling, setIsCancelling] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(() =>
+    calculateTimeRemaining(
+      booking.bookingDate,
+      booking.startTime,
+      booking.endTime,
+      booking.isFullDayBooking
+    )
+  );
+
+  // Update time remaining every minute for active bookings
+  useEffect(() => {
+    if (booking.status === "active" && isBookingToday(booking.bookingDate)) {
+      // Update immediately on mount
+      setTimeRemaining(
+        calculateTimeRemaining(
+          booking.bookingDate,
+          booking.startTime,
+          booking.endTime,
+          booking.isFullDayBooking
+        )
+      );
+
+      const interval = setInterval(() => {
+        const newTimeRemaining = calculateTimeRemaining(
+          booking.bookingDate,
+          booking.startTime,
+          booking.endTime,
+          booking.isFullDayBooking
+        );
+        setTimeRemaining(newTimeRemaining);
+      }, 60000); // Update every minute
+
+      return () => clearInterval(interval);
+    }
+  }, [booking]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -105,6 +146,11 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
     new Date(booking.bookingDate) < new Date() &&
     booking.status !== "cancelled";
 
+  // Calculate booking duration
+  const bookingDuration = booking.isFullDayBooking
+    ? "Full Day"
+    : getBookingDuration(booking.startTime, booking.endTime);
+
   return (
     <div
       className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow ${
@@ -130,8 +176,69 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
           {booking.roomId.description}
         </p>
 
-        {/* Status Badge */}
-        <div className="mb-4">{getStatusBadge(booking.status)}</div>
+        {/* Status and Duration Badge */}
+        <div className="flex justify-between items-center mb-4">
+          {getStatusBadge(booking.status)}
+          <div className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-semibold">
+            ⏱️ {bookingDuration}
+          </div>
+        </div>
+
+        {/* Time Remaining Display - Only for active bookings happening today */}
+        {booking.status === "active" && isBookingToday(booking.bookingDate) && (
+          <div
+            className={`mb-4 p-3 rounded-lg border ${
+              timeRemaining.isActive
+                ? "bg-green-50 border-green-200"
+                : timeRemaining.isPast
+                ? "bg-gray-50 border-gray-200"
+                : "bg-blue-50 border-blue-200"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-gray-700">
+                {timeRemaining.isActive
+                  ? "⏰ Time Remaining"
+                  : timeRemaining.isPast
+                  ? "✅ Completed"
+                  : "⏳ Starting Soon"}
+              </span>
+              <span
+                className={`text-sm font-bold ${
+                  timeRemaining.isActive
+                    ? "text-green-700"
+                    : timeRemaining.isPast
+                    ? "text-gray-700"
+                    : "text-blue-700"
+                }`}
+              >
+                {timeRemaining.formatted}
+              </span>
+            </div>
+
+            {/* Progress bar only for active bookings with less than 1 hour remaining */}
+            {timeRemaining.isActive &&
+              timeRemaining.totalMinutes < 60 &&
+              timeRemaining.totalMinutes > 0 && (
+                <div className="mt-2">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-green-500 h-2 rounded-full transition-all duration-1000"
+                      style={{
+                        width: `${Math.max(
+                          5,
+                          (timeRemaining.totalMinutes / 60) * 100
+                        )}%`,
+                      }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1 text-right">
+                    {timeRemaining.totalMinutes} minutes left
+                  </p>
+                </div>
+              )}
+          </div>
+        )}
 
         {/* Date and Time */}
         <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg p-4 mb-4 space-y-2 border border-orange-100">
@@ -141,6 +248,11 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
               <p className="text-xs text-gray-600 font-medium">Date</p>
               <p className="text-sm font-semibold text-gray-800">
                 {formatDate(booking.bookingDate)}
+                {isBookingToday(booking.bookingDate) && (
+                  <span className="ml-2 bg-orange-500 text-white px-2 py-1 rounded-full text-xs">
+                    Today
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -221,19 +333,25 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
         )}
 
         {/* Booking Timeline Indicator */}
-        {booking.status === "active" && (
+        {/* {booking.status === "active" && (
           <div className="mt-4 pt-4 border-t border-gray-200">
-            {isUpcoming ? (
+            {timeRemaining.isActive ? (
               <p className="text-xs text-green-600 font-medium text-center">
-                ✓ Upcoming Booking
+                🎯 Active Now - {timeRemaining.hours}h {timeRemaining.minutes}m
+                remaining
               </p>
-            ) : isPast ? (
+            ) : timeRemaining.isPast ? (
               <p className="text-xs text-gray-600 font-medium text-center">
-                📌 Past Booking
+                ✅ Completed
               </p>
-            ) : null}
+            ) : (
+              <p className="text-xs text-orange-600 font-medium text-center">
+                ⏳ Upcoming - Starts in {timeRemaining.hours}h{" "}
+                {timeRemaining.minutes}m
+              </p>
+            )}
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

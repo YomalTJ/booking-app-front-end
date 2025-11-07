@@ -1,0 +1,11 @@
+1st floor
+
+2nd room and 3rd -> 2nd floor
+
+in time slot need to shown selected room.
+
+full day book need to change UI..
+
+remaing hours need to show
+
+cc@trc.gov.lk
