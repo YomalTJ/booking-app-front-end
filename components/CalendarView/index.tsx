@@ -4,9 +4,10 @@ import React, { useState } from "react";
 import CalendarHeader from "./CalendarHeader";
 import CalendarGrid from "./CalendarGrid";
 import TimeSlots from "./TimeSlots";
-import AvailableOffices from "./AvailableOffices";
-import RoomSelector from "./RoomSelector";
+import { bookingService } from "@/services/bookingService";
 import { MONTH_NAMES } from "./constants";
+import toast from "react-hot-toast";
+import RoomSelector from "./RoomSelector";
 
 interface BookingData {
   startTime: string;
@@ -22,11 +23,12 @@ export default function CalendarView() {
   const [currentYear, setCurrentYear] = useState<number>(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [selectedRoomName, setSelectedRoomName] = useState<string | null>(null);
   const [bookingData, setBookingData] = useState<BookingData | undefined>(
     undefined
   );
-  const [showOffices, setShowOffices] = useState<boolean>(false);
   const [showTimeSlots, setShowTimeSlots] = useState<boolean>(false);
+  const [isBooking, setIsBooking] = useState<boolean>(false);
 
   const handleDateClick = (day: number): void => {
     setSelectedDate(day);
@@ -43,27 +45,57 @@ export default function CalendarView() {
     }
   };
 
-  const handleTimeSlotConfirm = (data: BookingData): void => {
+  const handleTimeSlotConfirm = async (data: BookingData): Promise<void> => {
+    if (!selectedRoomId || !selectedDate) {
+      toast.error("Please select a room and date");
+      return;
+    }
+
     setBookingData(data);
-    setShowTimeSlots(false);
-    setShowOffices(true);
+    setIsBooking(true);
+
+    try {
+      const bookingDate = getSelectedDateString();
+      if (!bookingDate) {
+        throw new Error("Invalid date");
+      }
+
+      const result = await bookingService.createBooking({
+        roomId: selectedRoomId,
+        bookingDate: bookingDate,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        isFullDayBooking: data.isFullDay,
+      });
+
+      toast.success("Booking created successfully!");
+
+      // Reset form
+      setSelectedDate(null);
+      setBookingData(undefined);
+      setShowTimeSlots(false);
+
+      // Refresh page to show updated bookings
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1500);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create booking");
+    } finally {
+      setIsBooking(false);
+    }
   };
 
-  const closeOffices = (): void => {
-    setShowOffices(false);
-    setSelectedDate(null);
-    setBookingData(undefined);
-  };
-
-  const handleRoomSelect = (roomId: string): void => {
+  const handleRoomSelect = (roomId: string, roomName?: string): void => {
     setSelectedRoomId(roomId);
+    setSelectedRoomName(roomName || null);
   };
 
   const progressStep = selectedRoomId
     ? selectedDate
-      ? showOffices
-        ? 3
-        : 2
+      ? showTimeSlots
+        ? 2
+        : 1
       : 1
     : 0;
 
@@ -77,6 +109,16 @@ export default function CalendarView() {
     const day = String(selectedDate).padStart(2, "0");
 
     return `${year}-${month}-${day}`;
+  };
+
+  const getBookingSummary = (): string => {
+    if (!selectedRoomName || !bookingData) return "";
+
+    const timeInfo = bookingData.isFullDay
+      ? "Full Day"
+      : `${bookingData.startTime} - ${bookingData.endTime}`;
+
+    return `You are booking ${selectedRoomName} for ${timeInfo}`;
   };
 
   return (
@@ -99,16 +141,6 @@ export default function CalendarView() {
             <div
               className={`w-4 h-4 rounded-full transition-colors ${
                 progressStep >= 2 ? "bg-orange-500" : "bg-gray-300"
-              }`}
-            ></div>
-            <div
-              className={`flex-1 h-1 transition-colors ${
-                progressStep >= 3 ? "bg-orange-500" : "bg-gray-300"
-              }`}
-            ></div>
-            <div
-              className={`w-4 h-4 rounded-full transition-colors ${
-                progressStep >= 3 ? "bg-orange-500" : "bg-gray-300"
               }`}
             ></div>
           </div>
@@ -148,23 +180,33 @@ export default function CalendarView() {
                     selectedRoomId={selectedRoomId}
                     onTimeSlotConfirm={handleTimeSlotConfirm}
                   />
+
+                  {/* Booking Summary */}
+                  {bookingData && (
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-700 text-center">
+                        {getBookingSummary()}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Loading State */}
+                  {isBooking && (
+                    <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-orange-500"></div>
+                        <p className="text-sm text-orange-700">
+                          Creating booking...
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
         </div>
       </div>
-
-      {/* Modal Backdrop */}
-      {showOffices && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40">
-          <AvailableOffices
-            selectedDate={getSelectedDateString()}
-            onClose={closeOffices}
-            bookingData={bookingData}
-          />
-        </div>
-      )}
     </>
   );
 }

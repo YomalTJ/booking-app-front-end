@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     await dbConnect();
 
-    const rooms = await Room.find({ availability: true }).sort({
+    const rooms = await Room.find({}).sort({
       floor: 1,
       name: 1,
     });
