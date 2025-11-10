@@ -77,7 +77,7 @@ export default function CalendarView() {
 
       // Refresh page to show updated bookings
       setTimeout(() => {
-        window.location.href = "/dashboard";
+        window.location.href = "/my-bookings";
       }, 1500);
     } catch (error: any) {
       toast.error(error.message || "Failed to create booking");

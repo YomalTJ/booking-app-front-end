@@ -18,3 +18,39 @@ body {
   color: #000000;
   background-image: linear-gradient(to bottom, #374151, #111827);
 }
+
+/* Make the entire time input field clickable to open time picker */
+.time-input-full::-webkit-calendar-picker-indicator {
+  background: transparent;
+  bottom: 0;
+  color: transparent;
+  cursor: pointer;
+  height: auto;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: auto;
+}
+
+.time-input-full {
+  position: relative;
+}
+
+/* Make the entire date input field clickable to open date picker */
+.date-input-full::-webkit-calendar-picker-indicator {
+  background: transparent;
+  bottom: 0;
+  color: transparent;
+  cursor: pointer;
+  height: auto;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: auto;
+}
+
+.date-input-full {
+  position: relative;
+}
