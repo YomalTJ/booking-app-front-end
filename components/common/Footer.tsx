@@ -22,7 +22,7 @@ const Footer = () => {
             <div className="flex items-center gap-3">
               <h2 className="text-3xl lg:text-4xl font-bold">Coworking Cube</h2>
               <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                Beta Version
+                Beta Version 1.0.0
               </span>
             </div>
             <p className="text-gray-300 text-sm lg:text-base leading-relaxed max-w-xl">

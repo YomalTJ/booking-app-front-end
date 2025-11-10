@@ -162,6 +162,13 @@ const Register = () => {
                 </span>
               </Link>
             </p>
+
+            {/* Beta Version 1.0.0 */}
+            <div className="text-center pt-4">
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                Beta Version 1.0.0
+              </span>
+            </div>
           </form>
         </FormContainer>
 
