@@ -21,7 +21,9 @@ const registerSchema = z
     name: z.string().min(2, "Name must be at least 2 characters long"),
     companyName: z.string().min(1, "Company name is required"),
     email: z.string().email("Invalid email address"),
-    phoneNumber: z.string().regex(/^0\d{9}$/, "Invalid phone number (format: 0712345678)"),
+    phoneNumber: z
+      .string()
+      .regex(/^0\d{9}$/, "Invalid phone number (format: 0712345678)"),
     password: z
       .string()
       .min(6, "Password must be at least 6 characters long")
@@ -169,7 +171,8 @@ const Register = () => {
           subtitle="Log in now to continue exploring your dashboard and manage your account with ease."
           buttonText="SIGN IN"
           buttonLink="/auth/login"
-          imageSrc="/Auth/register.svg"
+          imageSrc="/Auth/register.svg" // Keeping for backward compatibility
+          icon="users" // Note: I used "sparkles" since UserPlus isn't in our mapping, you can add it
         />
       </AuthLayout>
     </>

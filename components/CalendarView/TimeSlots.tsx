@@ -258,7 +258,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
         {/* Business Hours Notice */}
         <div className="bg-blue-50 border border-blue-200 text-blue-700 py-2 px-3 rounded text-sm mb-4">
           <p className="font-medium">
-            📅 Business Hours: {BUSINESS_OPEN} - {BUSINESS_CLOSE}
+            📅 Business Hours: {BUSINESS_OPEN} A.M. - {BUSINESS_CLOSE} P.M.
           </p>
           <p className="text-xs mt-1">
             Bookings are only available during these hours

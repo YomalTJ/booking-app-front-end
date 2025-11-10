@@ -100,13 +100,13 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
 
     switch (status) {
       case "available":
-        return "bg-green-500 text-white hover:bg-green-600";
+        return "bg-green-300 text-white hover:bg-green-400";
       case "fully_booked":
-        return "bg-red-500 text-white cursor-not-allowed hover:bg-red-600";
+        return "bg-red-300 text-white cursor-not-allowed hover:bg-red-400";
       case "partially_booked":
-        return "bg-yellow-400 text-gray-800 hover:bg-yellow-500";
+        return "bg-yellow-200 text-gray-800 hover:bg-yellow-300";
       case "loading":
-        return "bg-gray-200 text-gray-600 animate-pulse";
+        return "bg-gray-200 text-gray-400 animate-pulse";
       default:
         return "bg-gray-100 text-gray-700";
     }
@@ -161,16 +161,16 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
       {/* Legend */}
       <div className="flex flex-wrap gap-4 text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-500 rounded"></div>
-          <span className="text-gray-700">Available</span>
+          <div className="w-4 h-4 bg-green-300 rounded"></div>
+          <span className="text-gray-500">Available</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-red-500 rounded"></div>
-          <span className="text-gray-700">Fully Booked</span>
+          <div className="w-4 h-4 bg-red-300 rounded"></div>
+          <span className="text-gray-500">Fully Booked</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-yellow-400 rounded"></div>
-          <span className="text-gray-700">Partially Booked</span>
+          <div className="w-4 h-4 bg-yellow-200 rounded"></div>
+          <span className="text-gray-500">Partially Booked</span>
         </div>
       </div>
     </div>
