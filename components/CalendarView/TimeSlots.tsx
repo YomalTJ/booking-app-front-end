@@ -117,16 +117,16 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
 
     // Check if in time is before out time
     if (start >= end) {
-      return "Out time must be after in time";
+      return "Check-out time must be later than check-in time";
     }
 
     // Check if times are within business hours (8 AM - 6 PM)
     if (!isWithinBusinessHours(start)) {
-      return `In time must be between ${BUSINESS_OPEN} and ${BUSINESS_CLOSE}`;
+      return `Check-in time must be between ${BUSINESS_OPEN} AM and ${BUSINESS_CLOSE} PM`;
     }
 
     if (!isWithinBusinessHours(end)) {
-      return `Out time must be between ${BUSINESS_OPEN} and ${BUSINESS_CLOSE}`;
+      return `Check-out time must be between ${BUSINESS_OPEN} AM and ${BUSINESS_CLOSE} PM`;
     }
 
     // Check minimum 2 hours duration
@@ -136,17 +136,24 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
       (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
 
     if (durationHours < 2) {
-      return "Minimum booking duration is 2 hours";
+      return "Minimum booking duration is 2 hours. Please select a later check-out time.";
     }
 
     // Check for overlapping with booked slots
     if (isSlotOverlapping(start, end)) {
-      return "Selected time overlaps with existing booking";
+      const overlappingSlot = bookedSlots.find(
+        (booked) => !(end <= booked.startTime || start >= booked.endTime)
+      );
+
+      if (overlappingSlot) {
+        return `Time slot conflicts with existing booking (${overlappingSlot.startTime} - ${overlappingSlot.endTime})`;
+      }
+      return "Selected time overlaps with an existing booking";
     }
 
     // Check if time is in past
     if (isTimeInPast()) {
-      return "Cannot book time in the past";
+      return "Cannot book time in the past. Please select a future time.";
     }
 
     return null;
@@ -156,7 +163,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
     if (canBookFullDay()) {
       setIsFullDay(!isFullDay);
     } else {
-      toast.error("Cannot book full day - there are existing bookings");
+      toast.error("Full day booking unavailable - existing bookings present");
     }
   };
 
@@ -174,8 +181,12 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
       // Ensure out time doesn't exceed business closing time
       if (newOutTime <= BUSINESS_CLOSE) {
         setOutTime(newOutTime);
+        toast.success(
+          "Check-out time automatically adjusted to meet 2-hour minimum"
+        );
       } else {
         setOutTime(BUSINESS_CLOSE);
+        toast.success("Check-out time set to business closing time");
       }
     }
   };
@@ -185,8 +196,19 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
 
     // Don't allow out time beyond business hours
     if (newOutTime > BUSINESS_CLOSE) {
-      toast.error(`Booking cannot extend beyond ${BUSINESS_CLOSE}`);
+      toast.error(`Booking cannot extend beyond ${BUSINESS_CLOSE} PM`);
       setOutTime(BUSINESS_CLOSE);
+      return;
+    }
+
+    // Check if duration is less than 2 hours
+    const startTime = new Date(`2000-01-01T${inTime}`);
+    const endTime = new Date(`2000-01-01T${newOutTime}`);
+    const durationHours =
+      (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+
+    if (durationHours < 2) {
+      toast.error("Minimum booking duration is 2 hours");
       return;
     }
 
@@ -236,11 +258,14 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
           </h3>
           <div className="text-center py-8 bg-gray-100 rounded-lg">
             <p className="text-gray-600">Cannot book past dates</p>
+            <p className="text-sm text-gray-500 mt-2">
+              Please select today or a future date
+            </p>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="w-full bg-gray-400 text-white font-semibold py-3 rounded-lg transition"
+          className="w-full bg-gray-400 text-white font-semibold py-3 rounded-lg transition hover:bg-gray-500"
         >
           Close
         </button>
@@ -252,16 +277,20 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
     <div className="w-full">
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          Time Selection<span className="text-red-500">*</span>
+          Select Your Time Slot<span className="text-red-500">*</span>
         </h3>
 
         {/* Business Hours Notice */}
-        <div className="bg-blue-50 border border-blue-200 text-blue-700 py-2 px-3 rounded text-sm mb-4">
-          <p className="font-medium">
-            📅 Business Hours: {BUSINESS_OPEN} A.M. - {BUSINESS_CLOSE} P.M.
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 py-3 px-4 rounded-lg text-sm mb-4">
+          <p className="font-medium flex items-center gap-2">
+            <span>📅</span>
+            Business Hours: {BUSINESS_OPEN} AM - {BUSINESS_CLOSE} PM
           </p>
-          <p className="text-xs mt-1">
-            Bookings are only available during these hours
+          <p className="text-xs mt-2 text-blue-600">
+            • Minimum booking duration: 2 hours
+            <br />
+            • All times are in 24-hour format
+            <br />• Bookings must be within business hours
           </p>
         </div>
 
@@ -269,6 +298,9 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-orange-500 mx-auto"></div>
             <p className="text-gray-600 mt-2">Checking availability...</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Loading available time slots
+            </p>
           </div>
         ) : (
           <>
@@ -281,16 +313,27 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                   isFullDay
                     ? "bg-orange-500 text-white shadow-md"
                     : canBookFullDay()
-                    ? "border border-gray-300 text-gray-700 hover:border-orange-500"
+                    ? "border-2 border-gray-300 text-gray-700 hover:border-orange-500 hover:bg-orange-50"
                     : "border border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed"
                 }`}
               >
-                {canBookFullDay() ? "Book Full Day" : "Full Day Unavailable"}
-                {!canBookFullDay() && (
-                  <span className="block text-xs mt-1 text-gray-500">
-                    (Existing bookings present)
+                <div className="flex flex-col items-center">
+                  <span className="font-semibold">
+                    {canBookFullDay()
+                      ? "📅 Book Full Day"
+                      : "🚫 Full Day Unavailable"}
                   </span>
-                )}
+                  {!canBookFullDay() && (
+                    <span className="text-xs mt-1 text-gray-500">
+                      (Existing bookings on this date)
+                    </span>
+                  )}
+                  {canBookFullDay() && !isFullDay && (
+                    <span className="text-xs mt-1 text-gray-600">
+                      {BUSINESS_OPEN} AM - {BUSINESS_CLOSE} PM
+                    </span>
+                  )}
+                </div>
               </button>
             </div>
 
@@ -299,7 +342,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
               {/* In Time */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  In Time <span className="text-red-500">*</span>
+                  Check-in Time <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="time"
@@ -311,14 +354,14 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                   disabled={isFullDay}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Must be between {BUSINESS_OPEN} - {BUSINESS_CLOSE}
+                  Start time for your booking
                 </p>
               </div>
 
               {/* Out Time */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Out Time <span className="text-red-500">*</span>
+                  Check-out Time <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="time"
@@ -330,28 +373,54 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                   disabled={isFullDay}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Must be between {BUSINESS_OPEN} - {BUSINESS_CLOSE}
+                  End time for your booking (minimum 2 hours from check-in)
                 </p>
               </div>
+
+              {/* Duration Info */}
+              {!isFullDay && inTime && outTime && (
+                <div className="bg-green-50 border border-green-200 text-green-700 py-2 px-3 rounded text-sm">
+                  <div className="flex justify-between items-center">
+                    <span>Selected Duration:</span>
+                    <span className="font-semibold">
+                      {(() => {
+                        const start = new Date(`2000-01-01T${inTime}`);
+                        const end = new Date(`2000-01-01T${outTime}`);
+                        const hours =
+                          (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+                        return `${hours.toFixed(1)} hours`;
+                      })()}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Booked Slots Display */}
               {bookedSlots.length > 0 && (
                 <div className="mt-4">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">
-                    Already Booked Slots:
+                  <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <span>⏰</span>
+                    Already Booked Time Slots:
                   </h4>
                   <div className="space-y-2">
                     {bookedSlots.map((slot, index) => (
                       <div
                         key={index}
-                        className="bg-red-100 border border-red-300 text-red-700 py-2 px-3 rounded text-sm"
+                        className="bg-red-50 border border-red-200 text-red-700 py-2 px-3 rounded text-sm"
                       >
-                        {slot.startTime} - {slot.endTime}
+                        <div className="flex justify-between items-center">
+                          <span>
+                            {slot.startTime} - {slot.endTime}
+                          </span>
+                          <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                            Booked
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    Please select a time slot that doesn't overlap with existing
+                    💡 Please select a time slot that doesn't overlap with these
                     bookings
                   </p>
                 </div>
@@ -359,25 +428,48 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
 
               {/* Validation Message */}
               {validateTimeSelection() && !isFullDay && (
-                <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 py-2 px-3 rounded text-sm">
-                  {validateTimeSelection()}
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 py-3 px-4 rounded-lg text-sm">
+                  <div className="flex items-start gap-2">
+                    <span>⚠️</span>
+                    <div>
+                      <p className="font-medium">
+                        Please adjust your time selection:
+                      </p>
+                      <p className="mt-1">{validateTimeSelection()}</p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Full Day Validation Message */}
             {isFullDay && !canBookFullDay() && (
-              <div className="bg-red-50 border border-red-200 text-red-700 py-3 px-4 rounded text-sm mt-4">
-                Cannot book full day because there are existing bookings for
-                this date. Please use custom time slots instead.
+              <div className="bg-red-50 border border-red-200 text-red-700 py-3 px-4 rounded-lg text-sm mt-4">
+                <div className="flex items-start gap-2">
+                  <span>🚫</span>
+                  <div>
+                    <p className="font-medium">Full day booking unavailable</p>
+                    <p className="mt-1">
+                      Cannot book full day because there are existing bookings
+                      for this date. Please use custom time slots instead.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
             {/* Full Day Selected Info */}
             {isFullDay && canBookFullDay() && (
-              <div className="bg-green-50 border border-green-200 text-green-700 py-3 px-4 rounded text-sm mt-4">
-                ✅ Full day booking selected ({BUSINESS_OPEN} - {BUSINESS_CLOSE}
-                )
+              <div className="bg-green-50 border border-green-200 text-green-700 py-3 px-4 rounded-lg text-sm mt-4">
+                <div className="flex items-center gap-2">
+                  <span>✅</span>
+                  <div>
+                    <p className="font-medium">Full day booking selected</p>
+                    <p className="text-sm">
+                      {BUSINESS_OPEN} AM - {BUSINESS_CLOSE} PM (All day)
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </>
@@ -413,14 +505,23 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
             }
           }}
           disabled={isLoading || !!validateTimeSelection()}
-          className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition"
+          className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition transform hover:scale-[1.02] disabled:hover:scale-100"
         >
-          {isFullDay ? "Book Now" : "Confirm Time Slot"}
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Processing...
+            </div>
+          ) : isFullDay ? (
+            "Book Full Day"
+          ) : (
+            "Confirm Time Slot"
+          )}
         </button>
 
         <button
           onClick={onClose}
-          className="w-full border border-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-50 transition"
+          className="w-full border-2 border-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-50 transition transform hover:scale-[1.02]"
         >
           Cancel
         </button>

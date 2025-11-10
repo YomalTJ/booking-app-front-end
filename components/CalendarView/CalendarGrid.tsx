@@ -16,6 +16,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
   selectedRoomId,
 }) => {
   const [dayStatus, setDayStatus] = useState<DayStatus>({});
+  const [isLoading, setIsLoading] = useState(true);
 
   const monthIndex = MONTH_NAMES.indexOf(currentMonth);
   const firstDay = new Date(currentYear, monthIndex, 1).getDay();
@@ -24,19 +25,21 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
   useEffect(() => {
     // Check availability for all days in the month
     const checkAllDays = async () => {
-      if (!selectedRoomId) return;
+      if (!selectedRoomId) {
+        setIsLoading(false);
+        return;
+      }
 
+      setIsLoading(true);
       const newDayStatus: DayStatus = {};
 
-      for (let day = 1; day <= daysInMonth; day++) {
-        // Create date in YYYY-MM-DD format (local time, no timezone conversion)
-        const year = currentYear;
-        const month = String(monthIndex + 1).padStart(2, "0");
-        const dayStr = String(day).padStart(2, "0");
-        const bookingDate = `${year}-${month}-${dayStr}`;
-
-        try {
-          newDayStatus[day] = "loading";
+      try {
+        for (let day = 1; day <= daysInMonth; day++) {
+          // Create date in YYYY-MM-DD format (local time, no timezone conversion)
+          const year = currentYear;
+          const month = String(monthIndex + 1).padStart(2, "0");
+          const dayStr = String(day).padStart(2, "0");
+          const bookingDate = `${year}-${month}-${dayStr}`;
 
           const result = await bookingService.checkAvailability(
             selectedRoomId,
@@ -44,13 +47,14 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
           );
 
           newDayStatus[day] = result.type;
-        } catch (error) {
-          console.error(`Error checking day ${day}:`, error);
-          newDayStatus[day] = "loading";
         }
+        setDayStatus(newDayStatus);
+      } catch (error) {
+        console.error("Error checking days:", error);
+        toast.error("Failed to load availability data");
+      } finally {
+        setIsLoading(false);
       }
-
-      setDayStatus(newDayStatus);
     };
 
     checkAllDays();
@@ -96,7 +100,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
       return "bg-gray-100 text-gray-400 cursor-not-allowed";
     }
 
-    const status = dayStatus[day] || "loading";
+    const status = dayStatus[day];
 
     switch (status) {
       case "available":
@@ -105,15 +109,13 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
         return "bg-red-300 text-white cursor-not-allowed hover:bg-red-400";
       case "partially_booked":
         return "bg-yellow-200 text-gray-800 hover:bg-yellow-300";
-      case "loading":
-        return "bg-gray-200 text-gray-400 animate-pulse";
       default:
         return "bg-gray-100 text-gray-700";
     }
   };
 
   const handleDateClick = (day: number | null) => {
-    if (!day || dayStatus[day] === "loading") return;
+    if (!day) return;
 
     // Disable past dates
     if (isPastDate(day)) {
@@ -130,6 +132,20 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
     onDateClick(day);
   };
 
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg font-medium">Loading Calendar</p>
+          <p className="text-sm text-gray-500 mt-2">
+            Please wait while we check availability
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <div className="grid grid-cols-7 gap-1 mb-6">
@@ -145,7 +161,9 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
           <button
             key={idx}
             onClick={() => handleDateClick(day)}
-            disabled={!day || dayStatus[day] === "loading"}
+            disabled={
+              !day || isPastDate(day) || dayStatus[day] === "fully_booked"
+            }
             className={`
               aspect-square flex items-center justify-center rounded text-sm font-medium
               transition-all

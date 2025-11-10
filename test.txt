@@ -9,3 +9,5 @@ full day book need to change UI..
 remaing hours need to show
 
 cc@trc.gov.lk
+
+MONGO_URI=mongodb+srv://yomalthushara2295266:51uIvl0pzlCwFryD@cluster0.c3adr1u.mongodb.net/booking-app?retryWrites=true&w=majority&appName=Cluster0
