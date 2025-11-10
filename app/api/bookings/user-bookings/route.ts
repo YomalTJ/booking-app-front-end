@@ -22,15 +22,33 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "Invalid token" }, { status: 401 });
     }
 
-    // Fetch user bookings with room details
+    // AUTO-CLEANUP: Delete bookings older than 3 months (for all users)
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    const cleanupResult = await Booking.deleteMany({
+      bookingDate: { $lt: threeMonthsAgo },
+    });
+
+    console.log(
+      `Auto-cleanup: Deleted ${cleanupResult.deletedCount} old bookings`
+    );
+
+    // Fetch user bookings with room details (only non-deleted ones)
     const bookings = await Booking.find({
       userId: decoded.userId,
-      status: { $in: ["active", "completed"] },
+      status: { $in: ["active", "completed", "cancelled"] },
     })
       .populate("roomId")
       .sort({ bookingDate: -1 });
 
-    return NextResponse.json({ bookings }, { status: 200 });
+    return NextResponse.json(
+      {
+        bookings,
+        cleanedUp: cleanupResult.deletedCount,
+      },
+      { status: 200 }
+    );
   } catch (error: any) {
     console.error("Fetch bookings error:", error);
     return NextResponse.json(

@@ -1,61 +1,18 @@
-// BookingCard.tsx
-"use client";
-
-import React, { useState, useEffect } from "react";
-import { bookingService } from "@/services/bookingService";
+import React, { useState } from "react";
 import { Booking } from "@/types/booking";
-import {
-  calculateTimeRemaining,
-  getBookingDuration,
-  isBookingToday,
-} from "@/utils/timeUtils";
-import toast from "react-hot-toast";
 
 interface BookingCardProps {
-  booking: Booking;
+  booking: Booking; // This now correctly uses the Booking type from types/booking.ts
   onUpdate: () => void;
 }
 
 const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(() =>
-    calculateTimeRemaining(
-      booking.bookingDate,
-      booking.startTime,
-      booking.endTime,
-      booking.isFullDayBooking
-    )
-  );
 
-  // Update time remaining every minute for active bookings
-  useEffect(() => {
-    if (booking.status === "active" && isBookingToday(booking.bookingDate)) {
-      // Update immediately on mount
-      setTimeRemaining(
-        calculateTimeRemaining(
-          booking.bookingDate,
-          booking.startTime,
-          booking.endTime,
-          booking.isFullDayBooking
-        )
-      );
-
-      const interval = setInterval(() => {
-        const newTimeRemaining = calculateTimeRemaining(
-          booking.bookingDate,
-          booking.startTime,
-          booking.endTime,
-          booking.isFullDayBooking
-        );
-        setTimeRemaining(newTimeRemaining);
-      }, 60000); // Update every minute
-
-      return () => clearInterval(interval);
-    }
-  }, [booking]);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  // Format date
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
     return date.toLocaleDateString("en-US", {
       weekday: "short",
       year: "numeric",
@@ -64,332 +21,247 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
     });
   };
 
-  const formatTime = (time: string) => {
-    try {
-      const [hours, minutes] = time.split(":").map(Number);
-      const date = new Date();
-      date.setHours(hours, minutes, 0);
-      return date.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
-    } catch {
-      return time;
+  // Format time display
+  const formatTimeDisplay = () => {
+    if (booking.isFullDayBooking) {
+      return `Full Day (${booking.startTime} - ${booking.endTime})`;
     }
+    return `${booking.startTime} - ${booking.endTime}`;
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      active: {
-        bg: "bg-green-100",
-        text: "text-green-800",
-        label: "Active",
-        icon: "✓",
-      },
-      completed: {
-        bg: "bg-blue-100",
-        text: "text-blue-800",
-        label: "Completed",
-        icon: "✓",
-      },
-      cancelled: {
-        bg: "bg-red-100",
-        text: "text-red-800",
-        label: "Cancelled",
-        icon: "×",
-      },
-    };
+  // Check if booking can be cancelled (within 24 hours)
+  const canCancel = () => {
+    if (booking.status !== "active") return false;
 
-    const config =
-      statusConfig[status as keyof typeof statusConfig] || statusConfig.active;
-
-    return (
-      <div
-        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full ${config.bg} ${config.text} text-xs font-semibold`}
-      >
-        <span>{config.icon}</span>
-        {config.label}
-      </div>
-    );
-  };
-
-  const handleCancel = async () => {
-    // Check if booking is active
-    if (booking.status !== "active") {
-      toast.error("Only active bookings can be cancelled");
-      return;
-    }
-
-    // Check 24-hour cancellation window
-    const bookingCreatedAt = new Date(booking.createdAt);
+    const bookingDate = new Date(booking.bookingDate);
     const now = new Date();
-    const hoursSinceBooking =
+
+    // Calculate hours until booking starts
+    const hoursUntilBooking =
+      (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    // Calculate hours since booking was created
+    const bookingCreatedAt = new Date(booking.createdAt);
+    const hoursSinceCreation =
       (now.getTime() - bookingCreatedAt.getTime()) / (1000 * 60 * 60);
 
-    if (hoursSinceBooking > 24) {
-      toast.error("Bookings can only be cancelled within 24 hours of creation");
-      return;
-    }
+    // Allow cancellation if:
+    // 1. Booking is more than 24 hours away OR
+    // 2. Booking was created within the last 1 hour (grace period)
+    return hoursUntilBooking > 24 || hoursSinceCreation <= 1;
+  };
 
-    if (
-      !window.confirm(
-        "Are you sure you want to cancel this booking? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
+  const getCancellationMessage = () => {
+    const bookingDate = new Date(booking.bookingDate);
+    const now = new Date();
+    const hoursUntilBooking =
+      (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-    setIsCancelling(true);
-    try {
-      await bookingService.cancelBooking(booking._id);
-      toast.success("Booking cancelled successfully");
-      onUpdate();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to cancel booking");
-    } finally {
-      setIsCancelling(false);
+    const bookingCreatedAt = new Date(booking.createdAt);
+    const hoursSinceCreation =
+      (now.getTime() - bookingCreatedAt.getTime()) / (1000 * 60 * 60);
+
+    if (hoursUntilBooking > 24) {
+      return "⏳ Can be cancelled anytime until 24 hours before booking";
+    } else if (hoursSinceCreation <= 1) {
+      return "⏳ Can be cancelled within 1 hour of creation";
+    } else {
+      return "⚠️ Cannot cancel (within 24 hours of booking time)";
     }
   };
 
-  const isUpcoming =
-    new Date(booking.bookingDate) > new Date() && booking.status === "active";
-  const isPast =
-    new Date(booking.bookingDate) < new Date() &&
-    booking.status !== "cancelled";
+  const handleCancelClick = () => {
+    setShowConfirmation(true);
+  };
 
-  // Calculate booking duration
-  const bookingDuration = booking.isFullDayBooking
-    ? "Full Day"
-    : getBookingDuration(booking.startTime, booking.endTime);
+  const handleConfirmCancel = async () => {
+    setIsCancelling(true);
+    try {
+      const { bookingService } = await import("@/services/bookingService");
+      await bookingService.cancelBooking(booking._id);
+      onUpdate(); // Refresh the bookings list
+    } catch (error) {
+      console.error("Cancel booking error:", error);
+    } finally {
+      setIsCancelling(false);
+      setShowConfirmation(false);
+    }
+  };
+
+  const handleCancelConfirmation = () => {
+    setShowConfirmation(false);
+  };
 
   return (
-    <div
-      className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow ${
-        booking.status === "cancelled" ? "opacity-75" : ""
-      }`}
-    >
-      {/* Room Header */}
-      <div className="h-32 bg-gradient-to-br from-orange-400 to-orange-600 flex flex-col items-center justify-center text-white relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-20 h-20 bg-orange-400 rounded-full mix-blend-multiply filter blur-xl opacity-20"></div>
-
-        <div className="text-4xl mb-2">🏢</div>
-        <p className="font-semibold text-center px-4">{booking.roomId.name}</p>
-        <p className="text-xs text-orange-100 mt-1">
-          Floor {booking.roomId.floor}
-        </p>
-      </div>
-
-      {/* Booking Details */}
-      <div className="p-4">
-        {/* Description */}
-        <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-          {booking.roomId.description}
-        </p>
-
-        {/* Status and Duration Badge */}
-        <div className="flex justify-between items-center mb-4">
-          {getStatusBadge(booking.status)}
-          <div className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-semibold">
-            ⏱️ {bookingDuration}
+    <>
+      <div className="bg-white rounded-lg shadow-md p-6 mb-4 hover:shadow-xl transition-shadow">
+        {/* Room Header */}
+        <div className="bg-orange-500 text-white p-4 rounded-t-lg -mx-6 -mt-6 mb-4">
+          <div className="flex items-center justify-center mb-2">
+            <span className="text-4xl">🏢</span>
           </div>
-        </div>
-
-        {/* Time Remaining Display - Only for active bookings happening today */}
-        {booking.status === "active" && isBookingToday(booking.bookingDate) && (
-          <div
-            className={`mb-4 p-3 rounded-lg border ${
-              timeRemaining.isActive
-                ? "bg-green-50 border-green-200"
-                : timeRemaining.isPast
-                ? "bg-gray-50 border-gray-200"
-                : "bg-blue-50 border-blue-200"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-gray-700">
-                {timeRemaining.isActive
-                  ? "⏰ Time Remaining"
-                  : timeRemaining.isPast
-                  ? "✅ Completed"
-                  : "⏳ Starting Soon"}
-              </span>
-              <span
-                className={`text-sm font-bold ${
-                  timeRemaining.isActive
-                    ? "text-green-700"
-                    : timeRemaining.isPast
-                    ? "text-gray-700"
-                    : "text-blue-700"
-                }`}
-              >
-                {timeRemaining.formatted}
-              </span>
-            </div>
-
-            {/* Progress bar only for active bookings with less than 1 hour remaining */}
-            {timeRemaining.isActive &&
-              timeRemaining.totalMinutes < 60 &&
-              timeRemaining.totalMinutes > 0 && (
-                <div className="mt-2">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-green-500 h-2 rounded-full transition-all duration-1000"
-                      style={{
-                        width: `${Math.max(
-                          5,
-                          (timeRemaining.totalMinutes / 60) * 100
-                        )}%`,
-                      }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-1 text-right">
-                    {timeRemaining.totalMinutes} minutes left
-                  </p>
-                </div>
-              )}
-          </div>
-        )}
-
-        {/* Date and Time */}
-        <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg p-4 mb-4 space-y-2 border border-orange-100">
-          <div className="flex items-start gap-3">
-            <span className="text-lg">📅</span>
-            <div>
-              <p className="text-xs text-gray-600 font-medium">Date</p>
-              <p className="text-sm font-semibold text-gray-800">
-                {formatDate(booking.bookingDate)}
-                {isBookingToday(booking.bookingDate) && (
-                  <span className="ml-2 bg-orange-500 text-white px-2 py-1 rounded-full text-xs">
-                    Today
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <span className="text-lg">⏰</span>
-            <div>
-              <p className="text-xs text-gray-600 font-medium">Time</p>
-              <p className="text-sm font-semibold text-gray-800">
-                {booking.isFullDayBooking
-                  ? "Full Day (00:00 - 23:59)"
-                  : `${formatTime(booking.startTime)} - ${formatTime(
-                      booking.endTime
-                    )}`}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Room Details */}
-        <div className="flex gap-4 mb-4 text-sm">
-          <div className="flex items-center gap-2 text-gray-700">
-            <span>👥</span>
-            <span>Capacity: {booking.roomId.capacity}</span>
-          </div>
-        </div>
-
-        {/* Notes */}
-        {booking.notes && (
-          <div className="mb-4 p-3 bg-blue-50 rounded border border-blue-200">
-            <p className="text-xs font-semibold text-gray-700 mb-1">Notes:</p>
-            <p className="text-sm text-gray-600">{booking.notes}</p>
-          </div>
-        )}
-
-        {/* Booking Dates */}
-        <div className="text-xs text-gray-500 mb-4 space-y-1">
-          <p>
-            Booked on:{" "}
-            {new Date(booking.createdAt).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+          <h3 className="text-xl font-bold text-center">
+            {booking.roomId.name}
+          </h3>
+          <p className="text-center text-sm opacity-90">
+            Floor: {booking.roomId.floor}
           </p>
         </div>
 
-        {/* Action Button */}
-        {booking.status === "active" && (
-          <button
-            onClick={handleCancel}
-            disabled={isCancelling}
-            className="w-full py-2 px-4 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+        {/* Room Description */}
+        <p className="text-gray-600 text-sm mb-4">
+          {booking.roomId.description}
+        </p>
+
+        {/* Status Badges */}
+        <div className="flex gap-2 mb-4 flex-wrap">
+          <span
+            className={`px-3 py-1 rounded-full text-sm font-medium ${
+              booking.status === "active"
+                ? "bg-green-100 text-green-700"
+                : booking.status === "cancelled"
+                ? "bg-red-100 text-red-700"
+                : "bg-gray-100 text-gray-700"
+            }`}
           >
-            {isCancelling ? (
-              <span className="flex items-center justify-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white"></div>
-                Cancelling...
-              </span>
-            ) : (
-              "Cancel Booking"
-            )}
-          </button>
-        )}
+            {booking.status === "active" ? "✓ Active" : "✗ Cancelled"}
+          </span>
+          {booking.isFullDayBooking && (
+            <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+              ⏱️ Full Day
+            </span>
+          )}
+        </div>
 
-        {booking.status === "cancelled" && (
-          <div className="w-full py-2 px-4 bg-gray-200 text-gray-600 text-center rounded-lg font-semibold">
-            Booking Cancelled
+        {/* Booking Details */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <div className="flex items-start gap-3 mb-3">
+            <span className="text-2xl">📅</span>
+            <div>
+              <p className="text-sm font-medium text-gray-700">Date</p>
+              <p className="text-base font-semibold text-gray-900">
+                {formatDate(booking.bookingDate)}
+              </p>
+            </div>
           </div>
-        )}
 
-        {booking.status === "completed" && (
-          <div className="w-full py-2 px-4 bg-blue-100 text-blue-700 text-center rounded-lg font-semibold">
-            Booking Completed
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">⏰</span>
+            <div>
+              <p className="text-sm font-medium text-gray-700">Time</p>
+              <p className="text-base font-semibold text-gray-900">
+                {formatTimeDisplay()}
+              </p>
+            </div>
           </div>
-        )}
+        </div>
 
+        {/* Capacity */}
+        <p className="text-gray-700 mb-3">
+          👥 Capacity: {booking.roomId.capacity}
+        </p>
+
+        {/* Booked On */}
+        <p className="text-sm text-gray-500 mb-4">
+          Booked on:{" "}
+          {new Date(booking.createdAt).toLocaleString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </p>
+
+        {/* Cancel Button */}
         {booking.status === "active" && (
-          <div className="text-xs text-gray-500 mt-5">
-            {(() => {
-              const bookingCreatedAt = new Date(booking.createdAt);
-              const now = new Date();
-              const hoursSinceBooking =
-                (now.getTime() - bookingCreatedAt.getTime()) / (1000 * 60 * 60);
-              const hoursLeft = 24 - hoursSinceBooking;
+          <>
+            <button
+              onClick={handleCancelClick}
+              disabled={!canCancel()}
+              className={`w-full py-3 rounded-lg font-semibold transition ${
+                canCancel()
+                  ? "bg-red-500 hover:bg-red-600 text-white"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
+            >
+              Cancel Booking
+            </button>
 
-              if (hoursLeft > 0) {
-                return (
-                  <p className="text-green-600">
-                    ⏳ Can be cancelled within {Math.ceil(hoursLeft)} hours
-                  </p>
-                );
-              } else {
-                return (
-                  <p className="text-red-600">❌ Cancellation window expired</p>
-                );
-              }
-            })()}
-          </div>
+            <p
+              className={`text-xs mt-2 flex items-center justify-center gap-1 ${
+                canCancel() ? "text-gray-500" : "text-red-500"
+              }`}
+            >
+              {getCancellationMessage()}
+            </p>
+          </>
         )}
-
-        {/* Booking Timeline Indicator */}
-        {/* {booking.status === "active" && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            {timeRemaining.isActive ? (
-              <p className="text-xs text-green-600 font-medium text-center">
-                🎯 Active Now - {timeRemaining.hours}h {timeRemaining.minutes}m
-                remaining
-              </p>
-            ) : timeRemaining.isPast ? (
-              <p className="text-xs text-gray-600 font-medium text-center">
-                ✅ Completed
-              </p>
-            ) : (
-              <p className="text-xs text-orange-600 font-medium text-center">
-                ⏳ Upcoming - Starts in {timeRemaining.hours}h{" "}
-                {timeRemaining.minutes}m
-              </p>
-            )}
-          </div>
-        )} */}
       </div>
-    </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="text-center">
+              {/* Warning Icon */}
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg
+                  className="h-6 w-6 text-red-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
+                </svg>
+              </div>
+
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Cancel Booking?
+              </h3>
+
+              <p className="text-sm text-gray-600 mb-6">
+                Are you sure you want to cancel your booking for{" "}
+                <span className="font-semibold">{booking.roomId.name}</span> on{" "}
+                <span className="font-semibold">
+                  {formatDate(booking.bookingDate)}
+                </span>
+                ? This action cannot be undone.
+              </p>
+
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={handleCancelConfirmation}
+                  disabled={isCancelling}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium disabled:opacity-50"
+                >
+                  No, Keep Booking
+                </button>
+                <button
+                  onClick={handleConfirmCancel}
+                  disabled={isCancelling}
+                  className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isCancelling ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Cancelling...
+                    </>
+                  ) : (
+                    "Yes, Cancel Booking"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

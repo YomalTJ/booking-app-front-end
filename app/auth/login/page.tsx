@@ -72,7 +72,8 @@ const Login = () => {
           subtitle="Sign up now to unlock your dashboard, manage your workspace, and stay connected effortlessly."
           buttonText="SIGN UP"
           buttonLink="/auth/signup"
-          imageSrc="/Auth/log.svg"
+          imageSrc="/Auth/log.svg" // Keeping for backward compatibility
+          icon="users" // or "rocket" for login
         />
 
         {/* Right side - Form */}

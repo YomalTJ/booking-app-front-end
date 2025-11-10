@@ -6,7 +6,16 @@ export async function GET(request: NextRequest) {
   try {
     await dbConnect();
 
-    const rooms = await Room.find({}).sort({
+    const { searchParams } = new URL(request.url);
+    const branch = searchParams.get("branch");
+
+    // Build query object
+    const query: any = {};
+    if (branch) {
+      query.branch = branch;
+    }
+
+    const rooms = await Room.find(query).sort({
       floor: 1,
       name: 1,
     });

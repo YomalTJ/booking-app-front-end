@@ -74,7 +74,7 @@ const AvailableOffices: React.FC<AvailableOfficesProps> = ({
       toast.success("Booking created successfully!");
       onClose();
       // Refresh page to show updated bookings
-      window.location.href = "/dashboard";
+      window.location.href = "/my-bookings";
     } catch (error: any) {
       toast.error(error.message || "Failed to create booking");
     } finally {

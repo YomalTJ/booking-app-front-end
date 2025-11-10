@@ -45,7 +45,7 @@ const BookingDetailsForm = () => {
         </div>
       ))}
 
-      <Link href="/dashboard">
+      <Link href="/my-bookings">
         <button
           type="submit"
           className="w-full p-4 bg-green-600 text-white text-lg font-medium rounded-md hover:bg-green-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"

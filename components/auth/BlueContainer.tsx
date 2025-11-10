@@ -1,13 +1,14 @@
 import React from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { Users, Rocket, Building2, Sparkles } from "lucide-react";
 
 interface BlueContainerProps {
   title: string;
   subtitle?: string;
   buttonText: string;
   buttonLink: string;
-  imageSrc: string;
+  imageSrc: string; // Keeping for backward compatibility, but we'll use icon instead
+  icon?: "users" | "rocket" | "building" | "sparkles"; // New prop for icon selection
 }
 
 const BlueContainer: React.FC<BlueContainerProps> = ({
@@ -16,7 +17,35 @@ const BlueContainer: React.FC<BlueContainerProps> = ({
   buttonText,
   buttonLink,
   imageSrc,
+  icon = "users", // Default icon
 }) => {
+  // Icon mapping
+  const iconConfig = {
+    users: {
+      component: Users,
+      color: "text-white",
+      size: 120,
+    },
+    rocket: {
+      component: Rocket,
+      color: "text-white",
+      size: 120,
+    },
+    building: {
+      component: Building2,
+      color: "text-white",
+      size: 120,
+    },
+    sparkles: {
+      component: Sparkles,
+      color: "text-white",
+      size: 120,
+    },
+  };
+
+  const SelectedIcon = iconConfig[icon].component;
+  const iconSize = iconConfig[icon].size;
+
   return (
     <div
       className="w-full md:w-1/2 text-white flex flex-col items-center justify-center p-6 md:p-12 relative overflow-hidden"
@@ -32,9 +61,9 @@ const BlueContainer: React.FC<BlueContainerProps> = ({
         <h2 className="text-2xl md:text-3xl font-bold mb-4 leading-tight">
           {title}
         </h2>
-        {subtitle && <p className="text-sm md:text-base text-orange-100">
-          {subtitle}
-        </p>}
+        {subtitle && (
+          <p className="text-sm md:text-base text-orange-100">{subtitle}</p>
+        )}
       </div>
 
       <Link href={buttonLink}>
@@ -43,16 +72,15 @@ const BlueContainer: React.FC<BlueContainerProps> = ({
         </button>
       </Link>
 
-      {/* <div className="mt-12 w-full max-w-md relative z-10">
-        <Image
-          src={imageSrc}
-          alt="Auth illustration"
-          width={500}
-          height={400}
-          className="w-full drop-shadow-lg"
-          priority
-        />
-      </div> */}
+      <div className="mt-12 w-full max-w-md relative z-10 flex justify-center">
+        <div className="p-8 bg-white/10 rounded-2xl backdrop-blur-sm border border-white/20">
+          <SelectedIcon
+            size={iconSize}
+            className={iconConfig[icon].color}
+            strokeWidth={1.5}
+          />
+        </div>
+      </div>
     </div>
   );
 };

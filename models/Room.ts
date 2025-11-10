@@ -19,6 +19,12 @@ const roomSchema = new mongoose.Schema(
       type: Number,
       required: [true, "Please provide floor number"],
     },
+    branch: {
+      type: String,
+      required: [true, "Please provide branch name"],
+      enum: ["Kottawa", "Mirissa"],
+      default: "Kottawa",
+    },
     image: {
       type: String,
       default: "/room-placeholder.jpg",

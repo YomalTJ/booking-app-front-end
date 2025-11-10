@@ -258,7 +258,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
         {/* Business Hours Notice */}
         <div className="bg-blue-50 border border-blue-200 text-blue-700 py-2 px-3 rounded text-sm mb-4">
           <p className="font-medium">
-            📅 Business Hours: {BUSINESS_OPEN} - {BUSINESS_CLOSE}
+            📅 Business Hours: {BUSINESS_OPEN} A.M. - {BUSINESS_CLOSE} P.M.
           </p>
           <p className="text-xs mt-1">
             Bookings are only available during these hours
@@ -305,7 +305,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                   type="time"
                   value={inTime}
                   onChange={handleInTimeChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition time-input-full"
                   min={BUSINESS_OPEN}
                   max={BUSINESS_CLOSE}
                   disabled={isFullDay}
@@ -324,7 +324,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                   type="time"
                   value={outTime}
                   onChange={handleOutTimeChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition time-input-full"
                   min={BUSINESS_OPEN}
                   max={BUSINESS_CLOSE}
                   disabled={isFullDay}

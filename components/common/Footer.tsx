@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   FaFacebookF,
   FaYoutube,
@@ -8,13 +9,22 @@ import {
 } from "react-icons/fa";
 
 const Footer = () => {
+  const pathname = usePathname();
+
+  if (pathname?.includes("/auth")) return null;
+
   return (
     <footer className="w-full bg-[#10375c] text-white">
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-52">
           {/* Left Section - Company Info */}
           <div className="space-y-6">
-            <h2 className="text-3xl lg:text-4xl font-bold">Coworking Cube</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-3xl lg:text-4xl font-bold">Coworking Cube</h2>
+              <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                Beta Version
+              </span>
+            </div>
             <p className="text-gray-300 text-sm lg:text-base leading-relaxed max-w-xl">
               Affordable coworking spaces near Colombo for startups,
               freelancers, and small businesses. Flexible coworking space Sri

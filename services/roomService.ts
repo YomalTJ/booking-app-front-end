@@ -7,6 +7,8 @@ export interface Room {
   capacity: number;
   image: string;
   availability: boolean;
+  branch: string;
+  floor: number;
   bookings?: {
     startDate: string;
     endDate: string;
@@ -33,10 +35,15 @@ export const roomService = {
   // Get all rooms - FIXED URL
   async getAllRooms(): Promise<Room[]> {
     try {
-      const response = await axios.get<RoomResponse>(`${API_BASE_URL}/api/rooms`);
+      const response = await axios.get<RoomResponse>(
+        `${API_BASE_URL}/api/rooms`
+      );
       return response.data.data;
     } catch (error: any) {
-      console.error("Error fetching rooms:", error.response?.data || error.message);
+      console.error(
+        "Error fetching rooms:",
+        error.response?.data || error.message
+      );
       console.error("Full API URL attempted:", `${API_BASE_URL}/api/rooms`);
       return [];
     }
@@ -75,8 +82,8 @@ export const roomService = {
       endDate.setHours(0, 0, 0, 0);
 
       // Check for overlap
-      const hasOverlap = 
-        (startDate <= bookedEndDate && endDate >= bookedStartDate);
+      const hasOverlap =
+        startDate <= bookedEndDate && endDate >= bookedStartDate;
 
       if (hasOverlap) {
         conflictingDates.push({
@@ -88,7 +95,8 @@ export const roomService = {
 
     return {
       isAvailable: conflictingDates.length === 0,
-      conflictingDates: conflictingDates.length > 0 ? conflictingDates : undefined,
+      conflictingDates:
+        conflictingDates.length > 0 ? conflictingDates : undefined,
     };
   },
 
@@ -114,7 +122,9 @@ export const roomService = {
     try {
       const allRooms = await this.getAllRooms();
       return allRooms.filter((room) => {
-        return room.availability && this.isRoomAvailableOnDate(room, dateString);
+        return (
+          room.availability && this.isRoomAvailableOnDate(room, dateString)
+        );
       });
     } catch (error) {
       console.error("Error getting available rooms:", error);
@@ -132,11 +142,17 @@ export const roomService = {
       const availabilityData: Record<string, { available: number }> = {};
 
       for (let day = 1; day <= daysInMonth; day++) {
-        const dateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-        
+        const dateString = `${year}-${String(month + 1).padStart(
+          2,
+          "0"
+        )}-${String(day).padStart(2, "0")}`;
+
         let availableCount = 0;
         for (const room of allRooms) {
-          if (room.availability && this.isRoomAvailableOnDate(room, dateString)) {
+          if (
+            room.availability &&
+            this.isRoomAvailableOnDate(room, dateString)
+          ) {
             availableCount++;
           }
         }

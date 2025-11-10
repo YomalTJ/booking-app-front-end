@@ -99,7 +99,7 @@ const Navbar = () => {
           <Link
             href="/calendar-view"
             className={`text-sm font-medium transition-colors ${
-              pathname === "/dashboard"
+              pathname === "/calendar-view"
                 ? "text-orange-600 border-b-2 border-orange-600"
                 : "text-gray-600 hover:text-orange-600"
             }`}
@@ -107,9 +107,9 @@ const Navbar = () => {
             Calendar
           </Link>
           <Link
-            href="/dashboard"
+            href="/my-bookings"
             className={`text-sm font-medium transition-colors ${
-              pathname === "/dashboard"
+              pathname === "/my-bookings"
                 ? "text-orange-600 border-b-2 border-orange-600"
                 : "text-gray-600 hover:text-orange-600"
             }`}
@@ -198,10 +198,10 @@ const Navbar = () => {
       {isMobileMenuOpen && (
         <div className="lg:hidden mt-4 bg-gradient-to-b from-orange-50 to-white rounded-lg shadow-sm px-4 py-4 space-y-4">
           <Link
-            href="/dashboard"
+            href="/my-bookings"
             onClick={handleMobileLinkClick}
             className={`block text-sm font-medium transition-colors ${
-              pathname === "/dashboard"
+              pathname === "/my-bookings"
                 ? "text-orange-600"
                 : "text-gray-600 hover:text-orange-600"
             }`}

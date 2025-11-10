@@ -45,25 +45,35 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 403 });
     }
 
-    // Check 24-hour cancellation window
-    const bookingCreatedAt = new Date(booking.createdAt);
-    const now = new Date();
-    const hoursSinceBooking =
-      (now.getTime() - bookingCreatedAt.getTime()) / (1000 * 60 * 60);
-
-    if (hoursSinceBooking > 24) {
-      return NextResponse.json(
-        {
-          message: "Bookings can only be cancelled within 24 hours of creation",
-        },
-        { status: 400 }
-      );
-    }
-
     // Check if booking is already cancelled
     if (booking.status === "cancelled") {
       return NextResponse.json(
         { message: "Booking is already cancelled" },
+        { status: 400 }
+      );
+    }
+
+    // NEW LOGIC: Check cancellation window based on booking date
+    const bookingDate = new Date(booking.bookingDate);
+    const now = new Date();
+
+    // Calculate hours until booking starts
+    const hoursUntilBooking =
+      (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    // Allow cancellation if:
+    // 1. Booking is more than 24 hours away OR
+    // 2. Booking was created within the last 1 hour (for immediate cancellations)
+    const bookingCreatedAt = new Date(booking.createdAt);
+    const hoursSinceCreation =
+      (now.getTime() - bookingCreatedAt.getTime()) / (1000 * 60 * 60);
+
+    if (hoursUntilBooking <= 24 && hoursSinceCreation > 1) {
+      return NextResponse.json(
+        {
+          message:
+            "Bookings within 24 hours can only be cancelled within 1 hour of creation",
+        },
         { status: 400 }
       );
     }
