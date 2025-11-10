@@ -31,11 +31,43 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
 
   // Check if booking can be cancelled (within 24 hours)
   const canCancel = () => {
+    if (booking.status !== "active") return false;
+
     const bookingDate = new Date(booking.bookingDate);
     const now = new Date();
-    const hoursDiff =
+
+    // Calculate hours until booking starts
+    const hoursUntilBooking =
       (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-    return hoursDiff >= 24 && booking.status === "active";
+
+    // Calculate hours since booking was created
+    const bookingCreatedAt = new Date(booking.createdAt);
+    const hoursSinceCreation =
+      (now.getTime() - bookingCreatedAt.getTime()) / (1000 * 60 * 60);
+
+    // Allow cancellation if:
+    // 1. Booking is more than 24 hours away OR
+    // 2. Booking was created within the last 1 hour (grace period)
+    return hoursUntilBooking > 24 || hoursSinceCreation <= 1;
+  };
+
+  const getCancellationMessage = () => {
+    const bookingDate = new Date(booking.bookingDate);
+    const now = new Date();
+    const hoursUntilBooking =
+      (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    const bookingCreatedAt = new Date(booking.createdAt);
+    const hoursSinceCreation =
+      (now.getTime() - bookingCreatedAt.getTime()) / (1000 * 60 * 60);
+
+    if (hoursUntilBooking > 24) {
+      return "⏳ Can be cancelled anytime until 24 hours before booking";
+    } else if (hoursSinceCreation <= 1) {
+      return "⏳ Can be cancelled within 1 hour of creation";
+    } else {
+      return "⚠️ Cannot cancel (within 24 hours of booking time)";
+    }
   };
 
   const handleCancelClick = () => {
@@ -156,15 +188,13 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
               Cancel Booking
             </button>
 
-            {canCancel() ? (
-              <p className="text-xs text-gray-500 mt-2 flex items-center justify-center gap-1">
-                ⏳ Can be cancelled within 24 hours
-              </p>
-            ) : (
-              <p className="text-xs text-red-500 mt-2 flex items-center justify-center gap-1">
-                ⚠️ Cannot cancel (less than 24 hours to booking)
-              </p>
-            )}
+            <p
+              className={`text-xs mt-2 flex items-center justify-center gap-1 ${
+                canCancel() ? "text-gray-500" : "text-red-500"
+              }`}
+            >
+              {getCancellationMessage()}
+            </p>
           </>
         )}
       </div>
