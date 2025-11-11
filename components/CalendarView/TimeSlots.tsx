@@ -9,6 +9,16 @@ interface BookedSlot {
   endTime: string;
 }
 
+interface CompanyHoursInfo {
+  hasHourBasedBooking: boolean;
+  companyHours?: {
+    totalHours: number;
+    usedHours: number;
+    remainingHours: number;
+    companyName: string;
+  };
+}
+
 const TimeSlots: React.FC<TimeSlotsProps> = ({
   onClose,
   selectedDate,
@@ -26,10 +36,36 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
     endTime: string;
     isFullDay: boolean;
   } | null>(null);
+  const [companyHoursInfo, setCompanyHoursInfo] =
+    useState<CompanyHoursInfo | null>(null);
 
   // Business hours constraints
   const BUSINESS_OPEN = "08:00";
   const BUSINESS_CLOSE = "18:00"; // 6 PM
+
+  const fetchCompanyHours = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch("/api/user/company-hours", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCompanyHoursInfo(data);
+      }
+    } catch (error) {
+      console.error("Error fetching company hours:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompanyHours();
+  }, []);
 
   useEffect(() => {
     const loadBookedSlots = async () => {
@@ -94,6 +130,14 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
       }
     }
     return options;
+  };
+
+  const calculateBookingHours = (start: string, end: string): number => {
+    const [startHour, startMin] = start.split(":").map(Number);
+    const [endHour, endMin] = end.split(":").map(Number);
+    const startInMinutes = startHour * 60 + startMin;
+    const endInMinutes = endHour * 60 + endMin;
+    return (endInMinutes - startInMinutes) / 60;
   };
 
   const handleVerificationConfirm = () => {
@@ -174,37 +218,48 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
       if (!canBookFullDay()) {
         return "Full day booking not available due to existing bookings";
       }
+
+      // Check company hours for full day (10 hours: 8 AM - 6 PM)
+      if (
+        companyHoursInfo?.hasHourBasedBooking &&
+        companyHoursInfo.companyHours
+      ) {
+        const fullDayHours = 10;
+        if (companyHoursInfo.companyHours.remainingHours < fullDayHours) {
+          return `Insufficient hours. Full day requires ${fullDayHours}h but you only have ${companyHoursInfo.companyHours.remainingHours}h remaining.`;
+        }
+      }
+
       return null;
     }
 
     const start = inTime;
     const end = outTime;
 
-    // Check if in time is before out time
     if (start >= end) {
       return "Check-out time must be later than check-in time";
     }
 
-    // Check if times are within business hours (8 AM - 6 PM)
-    if (!isWithinBusinessHours(start)) {
-      return `Check-in time must be between ${BUSINESS_OPEN} AM and ${BUSINESS_CLOSE} PM`;
+    if (!isWithinBusinessHours(start) || !isWithinBusinessHours(end)) {
+      return `Times must be between ${BUSINESS_OPEN} and ${BUSINESS_CLOSE}`;
     }
 
-    if (!isWithinBusinessHours(end)) {
-      return `Check-out time must be between ${BUSINESS_OPEN} AM and ${BUSINESS_CLOSE} PM`;
-    }
+    const bookingHours = calculateBookingHours(start, end);
 
-    // Check minimum 2 hours duration
-    const startTime = new Date(`2000-01-01T${start}`);
-    const endTime = new Date(`2000-01-01T${end}`);
-    const durationHours =
-      (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-
-    if (durationHours < 2) {
+    if (bookingHours < 2) {
       return "Minimum booking duration is 2 hours.";
     }
 
-    // Check for overlapping with booked slots
+    // Check company hours availability
+    if (
+      companyHoursInfo?.hasHourBasedBooking &&
+      companyHoursInfo.companyHours
+    ) {
+      if (companyHoursInfo.companyHours.remainingHours < bookingHours) {
+        return `Insufficient hours. This booking requires ${bookingHours}h but you only have ${companyHoursInfo.companyHours.remainingHours}h remaining.`;
+      }
+    }
+
     if (isSlotOverlapping(start, end)) {
       const overlappingSlot = bookedSlots.find(
         (booked) => !(end <= booked.startTime || start >= booked.endTime)
@@ -216,13 +271,16 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
       return "Selected time overlaps with an existing booking";
     }
 
-    // Check if time is in past
     if (isTimeInPast()) {
       return "Cannot book time in the past. Please select a future time.";
     }
 
     return null;
   };
+
+  const currentBookingHours = isFullDay
+    ? 10
+    : calculateBookingHours(inTime, outTime);
 
   const handleFullDayToggle = () => {
     if (canBookFullDay()) {

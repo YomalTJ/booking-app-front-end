@@ -82,9 +82,9 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         {/* Logo */}
         <Link href="/" className="flex-shrink-0">
-          <div className="w-32 h-12 bg-orange-50 rounded flex items-center justify-center hover:bg-orange-100 transition-colors">
+          <div className="w-32 h-12 rounded flex items-center justify-center transition-colors">
             <Image
-              src="/NavBar/cropped-co-wrking-social-logo-copy.png"
+              src="/NavBar/logo.png"
               alt="Logo"
               width={120}
               height={40}

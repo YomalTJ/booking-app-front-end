@@ -16,10 +16,6 @@ const companyHoursSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    remainingHours: {
-      type: Number,
-      default: 0,
-    },
     isActive: {
       type: Boolean,
       default: true,
@@ -54,11 +50,14 @@ const companyHoursSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Calculate remaining hours before saving
-companyHoursSchema.pre("save", function (next) {
-  this.remainingHours = this.totalHours - this.usedHours;
-  next();
+// Virtual for remaining hours - calculated on demand
+companyHoursSchema.virtual("remainingHours").get(function () {
+  return this.totalHours - this.usedHours;
 });
+
+// Ensure virtual fields are serialized
+companyHoursSchema.set("toJSON", { virtuals: true });
+companyHoursSchema.set("toObject", { virtuals: true });
 
 export default mongoose.models.CompanyHours ||
   mongoose.model("CompanyHours", companyHoursSchema);
