@@ -9,6 +9,7 @@ interface BlueContainerProps {
   buttonLink: string;
   imageSrc: string; // Keeping for backward compatibility, but we'll use icon instead
   icon?: "users" | "rocket" | "building" | "sparkles"; // New prop for icon selection
+  className?: string;
 }
 
 const BlueContainer: React.FC<BlueContainerProps> = ({
@@ -18,6 +19,7 @@ const BlueContainer: React.FC<BlueContainerProps> = ({
   buttonLink,
   imageSrc,
   icon = "users", // Default icon
+  className = "",
 }) => {
   // Icon mapping
   const iconConfig = {
@@ -48,7 +50,7 @@ const BlueContainer: React.FC<BlueContainerProps> = ({
 
   return (
     <div
-      className="w-full md:w-1/2 text-white flex flex-col items-center justify-center p-6 md:p-12 relative overflow-hidden"
+      className={`w-full md:w-1/2 text-white flex flex-col items-center justify-center p-6 md:p-12 relative overflow-hidden ${className}`}
       style={{
         background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
       }}

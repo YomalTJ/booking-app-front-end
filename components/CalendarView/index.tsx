@@ -6,7 +6,7 @@ import CalendarGrid from "./CalendarGrid";
 import TimeSlots from "./TimeSlots";
 import { bookingService } from "@/services/bookingService";
 import { MONTH_NAMES } from "./constants";
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import RoomSelector from "./RoomSelector";
 
 interface BookingData {
@@ -205,6 +205,20 @@ export default function CalendarView() {
               )}
             </div>
           )}
+
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              error: {
+                style: {
+                  background: "#fee2e2",
+                  color: "#dc2626",
+                  border: "1px solid #fecaca",
+                },
+                icon: "❌",
+              },
+            }}
+          />
         </div>
       </div>
     </>
