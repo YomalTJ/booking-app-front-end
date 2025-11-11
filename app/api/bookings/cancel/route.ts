@@ -65,7 +65,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // NEW IMPROVED LOGIC: Check cancellation window based on booking date
+    // Check cancellation window based on booking date
     const bookingDate = new Date(booking.bookingDate);
     const now = new Date();
 
@@ -101,17 +101,35 @@ export async function PUT(request: NextRequest) {
 
     // Refund hours if it's an hour-based booking
     let hoursRefunded = 0;
-    if (booking.isHourBasedBooking && booking.hoursUsed > 0) {
+    let companyHoursUpdated = null;
+
+    if (
+      booking.isHourBasedBooking &&
+      booking.hoursUsed > 0 &&
+      booking.companyName
+    ) {
+      console.log("Processing hour-based booking refund:", {
+        bookingId: booking._id,
+        hoursUsed: booking.hoursUsed,
+        companyName: booking.companyName,
+      });
+
       const companyHours = await CompanyHours.findOne({
         companyName: booking.companyName,
       });
 
       if (companyHours) {
-        // Refund the hours
+        const previousUsedHours = companyHours.usedHours;
+        const previousRemainingHours =
+          companyHours.totalHours - companyHours.usedHours;
+
+        // Refund the hours by reducing usedHours
         companyHours.usedHours = Math.max(
           0,
           companyHours.usedHours - booking.hoursUsed
         );
+
+        // Add refund transaction
         companyHours.transactions.push({
           type: "refund",
           hours: booking.hoursUsed,
@@ -119,17 +137,39 @@ export async function PUT(request: NextRequest) {
             booking.bookingDate.toISOString().split("T")[0]
           } (${booking.startTime}-${booking.endTime})`,
           bookingId: booking._id,
+          createdAt: new Date(),
         });
+
         await companyHours.save();
+
         hoursRefunded = booking.hoursUsed;
 
-        console.log("Hours refunded for cancelled booking:", {
+        const newRemainingHours =
+          companyHours.totalHours - companyHours.usedHours;
+
+        companyHoursUpdated = {
+          previousUsedHours,
+          newUsedHours: companyHours.usedHours,
+          previousRemainingHours,
+          newRemainingHours,
+          totalHours: companyHours.totalHours,
+        };
+
+        console.log("Hours refunded successfully:", {
           bookingId: booking._id,
           hoursRefunded,
           companyName: booking.companyName,
-          remainingHours: companyHours.remainingHours,
+          previousUsedHours,
           newUsedHours: companyHours.usedHours,
+          previousRemainingHours,
+          newRemainingHours,
+          totalHours: companyHours.totalHours,
         });
+      } else {
+        console.warn(
+          "CompanyHours not found for company:",
+          booking.companyName
+        );
       }
     }
 
@@ -148,6 +188,7 @@ export async function PUT(request: NextRequest) {
       hoursRefunded,
       cancelledBy: userDecoded.userId,
       cancellationTime: new Date().toISOString(),
+      companyHoursUpdated,
     });
 
     return NextResponse.json(
@@ -155,6 +196,7 @@ export async function PUT(request: NextRequest) {
         message: "Booking cancelled successfully",
         hoursRefunded,
         booking: cancelledBooking,
+        companyHoursUpdated,
         cancellationDetails: {
           cancelledAt: new Date(),
           hoursUntilBooking: Math.round(hoursUntilBooking * 100) / 100,
