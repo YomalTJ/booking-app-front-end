@@ -37,6 +37,19 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    // Hour-based booking fields
+    isHourBasedBooking: {
+      type: Boolean,
+      default: false,
+    },
+    hoursUsed: {
+      type: Number,
+      default: 0,
+    },
+    companyName: {
+      type: String,
+      default: "",
+    },
     createdAt: {
       type: Date,
       default: Date.now,
@@ -48,6 +61,21 @@ const bookingSchema = new mongoose.Schema(
 // Index for faster queries
 bookingSchema.index({ roomId: 1, bookingDate: 1 });
 bookingSchema.index({ userId: 1, bookingDate: 1 });
+bookingSchema.index({ companyName: 1, status: 1 });
+
+// Calculate hours used before saving
+bookingSchema.pre("save", function (next) {
+  if (this.isHourBasedBooking) {
+    const [startHour, startMin] = this.startTime.split(":").map(Number);
+    const [endHour, endMin] = this.endTime.split(":").map(Number);
+
+    const startInMinutes = startHour * 60 + startMin;
+    const endInMinutes = endHour * 60 + endMin;
+
+    this.hoursUsed = (endInMinutes - startInMinutes) / 60;
+  }
+  next();
+});
 
 export default mongoose.models.Booking ||
   mongoose.model("Booking", bookingSchema);

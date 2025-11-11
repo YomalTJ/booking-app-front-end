@@ -62,7 +62,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
       (now.getTime() - bookingCreatedAt.getTime()) / (1000 * 60 * 60);
 
     if (hoursUntilBooking > 24) {
-      return "⏳ Can be cancelled anytime until 24 hours before booking";
+      return "⏳ Can be cancelled anytime until 24 hours after booking";
     } else if (hoursSinceCreation <= 1) {
       return "⏳ Can be cancelled within 1 hour of creation";
     } else {

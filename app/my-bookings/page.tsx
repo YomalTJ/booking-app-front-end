@@ -6,11 +6,24 @@ import EmptyState from "@/components/dashboard/EmptyState";
 import { bookingService } from "@/services/bookingService";
 import { Toaster, toast } from "react-hot-toast";
 import { Booking } from "@/types/booking";
+import { Clock } from "lucide-react";
+
+interface CompanyHoursInfo {
+  hasHourBasedBooking: boolean;
+  companyHours?: {
+    totalHours: number;
+    usedHours: number;
+    remainingHours: number;
+    companyName: string;
+  };
+}
 
 const Dashboard = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"date" | "time">("date");
+  const [companyHoursInfo, setCompanyHoursInfo] =
+    useState<CompanyHoursInfo | null>(null);
 
   // Date filter states
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -18,6 +31,26 @@ const Dashboard = () => {
   const [filterStatus, setFilterStatus] = useState<
     "all" | "active" | "cancelled" | "completed"
   >("all");
+
+  const fetchCompanyHours = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch("/api/user/company-hours", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCompanyHoursInfo(data);
+      }
+    } catch (error) {
+      console.error("Error fetching company hours:", error);
+    }
+  };
 
   const fetchBookings = async () => {
     setIsLoading(true);
@@ -82,6 +115,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchBookings();
+    fetchCompanyHours();
   }, []);
 
   // Clear all filters
@@ -92,6 +126,14 @@ const Dashboard = () => {
 
   // Check if any filters are active
   const hasActiveFilters = selectedDate || filterStatus !== "all";
+
+  const getHoursStatusColor = (remainingHours: number, totalHours: number) => {
+    const percentage = (remainingHours / totalHours) * 100;
+    if (percentage > 50) return "text-green-600 bg-green-50 border-green-200";
+    if (percentage > 20)
+      return "text-orange-600 bg-orange-50 border-orange-200";
+    return "text-red-600 bg-red-50 border-red-200";
+  };
 
   if (isLoading) {
     return (
@@ -122,6 +164,106 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* Company Hours Display - Only for hour-based companies */}
+            {companyHoursInfo?.hasHourBasedBooking &&
+              companyHoursInfo.companyHours && (
+                <div className="mb-6">
+                  <div
+                    className={`rounded-lg shadow-lg p-6 border-2 ${getHoursStatusColor(
+                      companyHoursInfo.companyHours.remainingHours,
+                      companyHoursInfo.companyHours.totalHours
+                    )}`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-white p-3 rounded-full shadow-md">
+                          <Clock className="w-8 h-8 text-orange-500" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold mb-1">
+                            Company Booking Hours
+                          </h3>
+                          <p className="text-sm opacity-80">
+                            {companyHoursInfo.companyHours.companyName}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-3xl font-bold mb-1">
+                          {companyHoursInfo.companyHours.remainingHours}h
+                        </div>
+                        <div className="text-sm opacity-80">remaining</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 grid grid-cols-3 gap-4">
+                      <div className="bg-white bg-opacity-70 rounded-lg p-3 text-center">
+                        <div className="text-xs opacity-80 mb-1">
+                          Total Hours
+                        </div>
+                        <div className="text-xl font-bold">
+                          {companyHoursInfo.companyHours.totalHours}h
+                        </div>
+                      </div>
+                      <div className="bg-white bg-opacity-70 rounded-lg p-3 text-center">
+                        <div className="text-xs opacity-80 mb-1">
+                          Used Hours
+                        </div>
+                        <div className="text-xl font-bold">
+                          {companyHoursInfo.companyHours.usedHours}h
+                        </div>
+                      </div>
+                      <div className="bg-white bg-opacity-70 rounded-lg p-3 text-center">
+                        <div className="text-xs opacity-80 mb-1">
+                          Usage Percentage
+                        </div>
+                        <div className="text-xl font-bold">
+                          {Math.round(
+                            (companyHoursInfo.companyHours.usedHours /
+                              companyHoursInfo.companyHours.totalHours) *
+                              100
+                          )}
+                          %
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="mt-4">
+                      <div className="w-full bg-white bg-opacity-40 rounded-full h-3 overflow-hidden">
+                        <div
+                          className="bg-white h-full rounded-full transition-all duration-500 shadow-sm"
+                          style={{
+                            width: `${
+                              (companyHoursInfo.companyHours.usedHours /
+                                companyHoursInfo.companyHours.totalHours) *
+                              100
+                            }%`,
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {/* Warning message if low hours */}
+                    {companyHoursInfo.companyHours.remainingHours < 5 &&
+                      companyHoursInfo.companyHours.remainingHours > 0 && (
+                        <div className="mt-4 bg-white bg-opacity-70 rounded-lg p-3 text-sm">
+                          ⚠️ Low hours remaining! Consider contacting admin to
+                          purchase more hours.
+                        </div>
+                      )}
+
+                    {companyHoursInfo.companyHours.remainingHours === 0 && (
+                      <div className="mt-4 bg-white bg-opacity-70 rounded-lg p-3 text-sm">
+                        🚫 No hours remaining! Please contact admin to purchase
+                        more hours before booking.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
             {/* Filter and Sort Controls */}
             {bookings.length > 0 && (
               <div className="bg-white rounded-lg shadow-md p-4">
@@ -136,7 +278,7 @@ const Dashboard = () => {
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent date-input-full"
-                      min={new Date().toISOString().split("T")[0]} // Optional: prevent selecting past dates
+                      min={new Date().toISOString().split("T")[0]}
                     />
                   </div>
 
@@ -235,7 +377,10 @@ const Dashboard = () => {
                 <BookingCard
                   key={booking._id}
                   booking={booking}
-                  onUpdate={fetchBookings}
+                  onUpdate={() => {
+                    fetchBookings();
+                    fetchCompanyHours(); // Refresh hours after booking update
+                  }}
                 />
               ))}
             </div>

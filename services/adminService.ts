@@ -58,6 +58,28 @@ export interface Room {
   createdAt: string;
 }
 
+export interface Company {
+  companyName: string;
+  userCount: number;
+}
+
+export interface CompanyHours {
+  _id: string;
+  companyName: string;
+  totalHours: number;
+  usedHours: number;
+  remainingHours: number;
+  isActive: boolean;
+  transactions: Array<{
+    type: "add" | "use" | "refund";
+    hours: number;
+    description?: string;
+    bookingId?: string;
+    createdAt: string;
+  }>;
+  createdAt: string;
+}
+
 export const adminService = {
   async login(credentials: AdminLoginCredentials) {
     try {
@@ -187,6 +209,86 @@ export const adminService = {
       return data.rooms;
     } catch (error: any) {
       toast.error(error.message || "Failed to fetch rooms");
+      throw error;
+    }
+  },
+
+  async getCompanies(): Promise<Company[]> {
+    try {
+      const token = this.getToken();
+      if (!token) throw new Error("No admin token found");
+
+      const response = await fetch(`${API_BASE_URL}/companies`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch companies");
+      }
+
+      const data = await response.json();
+      return data.companies;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to fetch companies");
+      throw error;
+    }
+  },
+
+  async getCompanyHours(): Promise<CompanyHours[]> {
+    try {
+      const token = this.getToken();
+      if (!token) throw new Error("No admin token found");
+
+      const response = await fetch(`${API_BASE_URL}/company-hours`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch company hours");
+      }
+
+      const data = await response.json();
+      return data.companyHours;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to fetch company hours");
+      throw error;
+    }
+  },
+
+  async addCompanyHours(
+    companyName: string,
+    hours: number,
+    description?: string
+  ): Promise<CompanyHours> {
+    try {
+      const token = this.getToken();
+      if (!token) throw new Error("No admin token found");
+
+      const response = await fetch(`${API_BASE_URL}/company-hours`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ companyName, hours, description }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to add hours");
+      }
+
+      const data = await response.json();
+      toast.success("Hours added successfully!");
+      return data.companyHours;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add hours");
       throw error;
     }
   },
