@@ -74,10 +74,11 @@ const Login = () => {
           buttonLink="/auth/signup"
           imageSrc="/Auth/log.svg" // Keeping for backward compatibility
           icon="users" // or "rocket" for login
+          className="hidden md:flex"
         />
 
         {/* Right side - Form */}
-        <FormContainer title="Log in to your account">
+        <FormContainer title="Log in to your account" className="mt-[20%] md:mt-0">
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="w-full max-w-md space-y-5"
@@ -109,7 +110,7 @@ const Login = () => {
             </div> */}
 
             <div className="flex justify-center pt-2">
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} fullWidth>
                 {isLoading ? "Logging in..." : "Log In"}
               </Button>
             </div>

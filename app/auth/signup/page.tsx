@@ -180,6 +180,7 @@ const Register = () => {
           buttonLink="/auth/login"
           imageSrc="/Auth/register.svg"
           icon="users"
+          className="hidden md:flex"
         />
       </AuthLayout>
     </>
