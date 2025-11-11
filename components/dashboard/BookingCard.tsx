@@ -96,7 +96,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
     <>
       <div className="bg-white rounded-lg shadow-md p-6 mb-4 hover:shadow-xl transition-shadow">
         {/* Room Header */}
-        <div className="bg-orange-500 text-white p-4 rounded-t-lg -mx-6 -mt-6 mb-4">
+        <div className="bg-orange-300 text-white p-4 rounded-t-lg -mx-6 -mt-6 mb-4">
           <div className="flex items-center justify-center mb-2">
             <span className="text-4xl">🏢</span>
           </div>
@@ -181,7 +181,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onUpdate }) => {
               disabled={!canCancel()}
               className={`w-full py-3 rounded-lg font-semibold transition ${
                 canCancel()
-                  ? "bg-red-500 hover:bg-red-600 text-white"
+                  ? "bg-red-400 hover:bg-red-500 text-white"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
             >
