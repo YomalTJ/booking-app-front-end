@@ -427,12 +427,13 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
         <div className="bg-blue-50 border border-blue-200 text-blue-700 py-3 px-4 rounded-lg text-sm mb-4">
           <p className="font-medium flex items-center gap-2">
             <span>📅</span>
-            Business Hours: {BUSINESS_OPEN} AM - {BUSINESS_CLOSE} PM
+            Business Hours: {formatTimeTo12h(BUSINESS_OPEN)} -{" "}
+            {formatTimeTo12h(BUSINESS_CLOSE)}
           </p>
           <p className="text-xs mt-2 text-blue-600">
             • Minimum booking duration: 2 hours
             <br />
-            • All times are in 24-hour format
+            • All times are in 12-hour format
             <br />• Bookings must be within business hours
           </p>
         </div>
@@ -591,7 +592,8 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                       >
                         <div className="flex justify-between items-center">
                           <span>
-                            {slot.startTime} - {slot.endTime}
+                            {formatTimeTo12h(slot.startTime)} -{" "}
+                            {formatTimeTo12h(slot.endTime)}
                           </span>
                           <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
                             Booked
