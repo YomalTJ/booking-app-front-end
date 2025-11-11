@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { TimeSlotsProps } from "./types";
 import { bookingService } from "@/services/bookingService";
 import toast from "react-hot-toast";
+import VerificationModal from "./VerificationModal";
 
 interface BookedSlot {
   startTime: string;
@@ -15,10 +16,16 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
   onTimeSlotConfirm,
 }) => {
   const [inTime, setInTime] = useState<string>("08:00");
-  const [outTime, setOutTime] = useState<string>("11:00");
+  const [outTime, setOutTime] = useState<string>("10:00");
   const [bookedSlots, setBookedSlots] = useState<BookedSlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFullDay, setIsFullDay] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
+  const [pendingBookingData, setPendingBookingData] = useState<{
+    startTime: string;
+    endTime: string;
+    isFullDay: boolean;
+  } | null>(null);
 
   // Business hours constraints
   const BUSINESS_OPEN = "08:00";
@@ -65,6 +72,50 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
     loadBookedSlots();
   }, [selectedRoomId, selectedDate]);
 
+  const generateTimeOptions = () => {
+    const options: string[] = [];
+    for (let hour = 8; hour <= 18; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        if (hour === 18 && minute > 0) break; // Stop at 18:00
+
+        const time24 = `${hour.toString().padStart(2, "0")}:${minute
+          .toString()
+          .padStart(2, "0")}`;
+
+        // Convert to 12-hour format for display
+        const displayHour = hour > 12 ? hour - 12 : hour;
+        const ampm = hour >= 12 ? "pm" : "am";
+        const displayTime =
+          minute === 0
+            ? `${displayHour}${ampm}`
+            : `${displayHour}:${minute.toString().padStart(2, "0")}${ampm}`;
+
+        options.push(time24);
+      }
+    }
+    return options;
+  };
+
+  const handleVerificationConfirm = () => {
+    if (pendingBookingData) {
+      onTimeSlotConfirm(pendingBookingData);
+      setShowVerification(false);
+      setPendingBookingData(null);
+    }
+  };
+
+  const formatTimeTo12h = (time24: string): string => {
+    const [hours, minutes] = time24.split(":").map(Number);
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = minutes.toString().padStart(2, "0");
+    // Use padEnd to ensure AM/PM alignment (add spaces before AM/PM to align)
+    const timeWithoutAmPm = `${displayHours
+      .toString()
+      .padStart(2, "0")}:${displayMinutes}`;
+    return `${timeWithoutAmPm} ${ampm}`;
+  };
+
   // Check if full day booking is possible
   const canBookFullDay = (): boolean => {
     return bookedSlots.length === 0;
@@ -91,9 +142,23 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
     });
   };
 
+  const isUserAuthenticated = (): boolean => {
+    const token = localStorage.getItem("token");
+    return !!token; // Returns true if token exists, false otherwise
+  };
+
   // Check if time is within business hours
   const isWithinBusinessHours = (time: string): boolean => {
-    return time >= BUSINESS_OPEN && time <= BUSINESS_CLOSE;
+    const timeToMinutes = (timeStr: string) => {
+      const [hours, minutes] = timeStr.split(":").map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const timeInMinutes = timeToMinutes(time);
+    const openInMinutes = timeToMinutes(BUSINESS_OPEN);
+    const closeInMinutes = timeToMinutes(BUSINESS_CLOSE);
+
+    return timeInMinutes >= openInMinutes && timeInMinutes <= closeInMinutes;
   };
 
   // Check if entire time range is within business hours
@@ -136,7 +201,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
       (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
 
     if (durationHours < 2) {
-      return "Minimum booking duration is 2 hours. Please select a later check-out time.";
+      return "Minimum booking duration is 2 hours.";
     }
 
     // Check for overlapping with booked slots
@@ -165,6 +230,19 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
     } else {
       toast.error("Full day booking unavailable - existing bookings present");
     }
+  };
+
+  const getSelectedDateString = (): string => {
+    if (!selectedDate) return "";
+
+    const today = new Date();
+    const monthIndex = today.getMonth();
+    const currentYear = today.getFullYear();
+
+    const month = String(monthIndex + 1).padStart(2, "0");
+    const dayStr = String(selectedDate).padStart(2, "0");
+
+    return `${currentYear}-${month}-${dayStr}`;
   };
 
   const handleInTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -213,6 +291,13 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
     }
 
     setOutTime(newOutTime);
+  };
+
+  const getMinimumCheckoutTime = (checkInTime: string): string => {
+    const [hours, minutes] = checkInTime.split(":").map(Number);
+    const checkInDate = new Date(`2000-01-01T${checkInTime}`);
+    checkInDate.setHours(hours + 2); // Add 2 hours minimum
+    return checkInDate.toTimeString().slice(0, 5);
   };
 
   const isPastDate = (): boolean => {
@@ -344,15 +429,34 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Check-in Time <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="time"
+                <select
                   value={inTime}
-                  onChange={handleInTimeChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition time-input-full"
-                  min={BUSINESS_OPEN}
-                  max={BUSINESS_CLOSE}
+                  onChange={(e) => {
+                    const newInTime = e.target.value;
+                    setInTime(newInTime);
+
+                    // Auto-adjust out time if it becomes invalid (less than 2 hours from new check-in)
+                    const minCheckoutTime = getMinimumCheckoutTime(newInTime);
+                    if (outTime < minCheckoutTime) {
+                      setOutTime(minCheckoutTime);
+                    }
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition bg-white text-base appearance-none cursor-pointer font-mono"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 1rem center",
+                    backgroundSize: "12px",
+                    paddingRight: "2.5rem",
+                  }}
                   disabled={isFullDay}
-                />
+                >
+                  {generateTimeOptions().map((time) => (
+                    <option key={time} value={time} className="py-2 font-mono">
+                      {formatTimeTo12h(time)}
+                    </option>
+                  ))}
+                </select>
                 <p className="text-xs text-gray-500 mt-1">
                   Start time for your booking
                 </p>
@@ -363,15 +467,34 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Check-out Time <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="time"
+                <select
                   value={outTime}
-                  onChange={handleOutTimeChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition time-input-full"
-                  min={BUSINESS_OPEN}
-                  max={BUSINESS_CLOSE}
+                  onChange={(e) => setOutTime(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition bg-white text-base appearance-none cursor-pointer font-mono"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 1rem center",
+                    backgroundSize: "12px",
+                    paddingRight: "2.5rem",
+                  }}
                   disabled={isFullDay}
-                />
+                >
+                  {generateTimeOptions()
+                    .filter((time) => {
+                      const minCheckoutTime = getMinimumCheckoutTime(inTime);
+                      return time >= minCheckoutTime;
+                    })
+                    .map((time) => (
+                      <option
+                        key={time}
+                        value={time}
+                        className="py-2 font-mono"
+                      >
+                        {formatTimeTo12h(time)}
+                      </option>
+                    ))}
+                </select>
                 <p className="text-xs text-gray-500 mt-1">
                   End time for your booking (minimum 2 hours from check-in)
                 </p>
@@ -427,7 +550,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
               )}
 
               {/* Validation Message */}
-              {validateTimeSelection() && !isFullDay && (
+              {/* {validateTimeSelection() && !isFullDay && (
                 <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 py-3 px-4 rounded-lg text-sm">
                   <div className="flex items-start gap-2">
                     <span>⚠️</span>
@@ -439,7 +562,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                     </div>
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
 
             {/* Full Day Validation Message */}
@@ -479,6 +602,20 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
       <div className="space-y-3">
         <button
           onClick={() => {
+            // Check authentication first
+            if (!isUserAuthenticated()) {
+              toast.error("Please log in to create a booking", {
+                style: {
+                  background: "#fef2f2",
+                  color: "#991b1b",
+                  border: "1px solid #fecaca",
+                },
+                icon: "🔒",
+                duration: 4000,
+              });
+              return;
+            }
+
             if (isFullDay) {
               if (!canBookFullDay()) {
                 toast.error(
@@ -486,26 +623,38 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
                 );
                 return;
               }
-              onTimeSlotConfirm({
+              // Show verification modal for full day booking
+              setPendingBookingData({
                 startTime: BUSINESS_OPEN,
                 endTime: BUSINESS_CLOSE,
                 isFullDay: true,
               });
+              setShowVerification(true);
             } else {
               const validationError = validateTimeSelection();
               if (validationError) {
-                toast.error(validationError);
+                // Show red error toast for validation errors
+                toast.error(validationError, {
+                  style: {
+                    background: "#fee2e2",
+                    color: "#dc2626",
+                    border: "1px solid #fecaca",
+                  },
+                  icon: "❌",
+                });
                 return;
               }
-              onTimeSlotConfirm({
+              // Show verification modal for time slot booking
+              setPendingBookingData({
                 startTime: inTime,
                 endTime: outTime,
                 isFullDay: false,
               });
+              setShowVerification(true);
             }
           }}
-          disabled={isLoading || !!validateTimeSelection()}
-          className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition transform hover:scale-[1.02] disabled:hover:scale-100"
+          disabled={isLoading}
+          className="w-full cursor-pointer bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition transform hover:scale-[1.02] disabled:hover:scale-100"
         >
           {isLoading ? (
             <div className="flex items-center justify-center gap-2">
@@ -513,7 +662,7 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
               Processing...
             </div>
           ) : isFullDay ? (
-            "Book Full Day"
+            "Confirm Book Full Day"
           ) : (
             "Confirm Time Slot"
           )}
@@ -521,11 +670,42 @@ const TimeSlots: React.FC<TimeSlotsProps> = ({
 
         <button
           onClick={onClose}
-          className="w-full border-2 border-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-50 transition transform hover:scale-[1.02]"
+          className="w-full border-2 border-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-50 transition transform hover:scale-[1.02] cursor-pointer"
         >
           Cancel
         </button>
       </div>
+
+      {pendingBookingData && (
+        <VerificationModal
+          isOpen={showVerification}
+          onClose={() => {
+            setShowVerification(false);
+            setPendingBookingData(null);
+          }}
+          onConfirm={handleVerificationConfirm}
+          bookingDetails={{
+            date: getSelectedDateString(),
+            startTime: pendingBookingData.startTime,
+            endTime: pendingBookingData.endTime,
+            isFullDay: pendingBookingData.isFullDay,
+            duration: pendingBookingData.isFullDay
+              ? "Full Day"
+              : `${(() => {
+                  const start = new Date(
+                    `2000-01-01T${pendingBookingData.startTime}`
+                  );
+                  const end = new Date(
+                    `2000-01-01T${pendingBookingData.endTime}`
+                  );
+                  const hours =
+                    (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+                  return `${hours.toFixed(1)} hours`;
+                })()}`,
+          }}
+          isLoading={isLoading}
+        />
+      )}
     </div>
   );
 };
