@@ -26,9 +26,16 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    const companyHours = await CompanyHours.find()
+    // Remove .lean() to keep virtuals, or manually calculate remainingHours
+    const companyHoursData = await CompanyHours.find()
       .sort({ createdAt: -1 })
       .lean();
+
+    // Manually add remainingHours to each record
+    const companyHours = companyHoursData.map((ch) => ({
+      ...ch,
+      remainingHours: ch.totalHours - ch.usedHours,
+    }));
 
     return NextResponse.json({ companyHours }, { status: 200 });
   } catch (error: any) {
@@ -90,29 +97,35 @@ export async function POST(request: NextRequest) {
         type: "add",
         hours,
         description: description || `Added ${hours} hours`,
+        createdAt: new Date(),
       });
       await companyHoursRecord.save();
     } else {
-      // Create new record
+      // Create new record (don't set remainingHours as it's a virtual field)
       companyHoursRecord = await CompanyHours.create({
         companyName,
         totalHours: hours,
         usedHours: 0,
-        remainingHours: hours,
         transactions: [
           {
             type: "add",
             hours,
             description: description || `Initial ${hours} hours`,
+            createdAt: new Date(),
           },
         ],
       });
     }
 
+    // Convert to plain object and add remainingHours
+    const responseData = companyHoursRecord.toObject();
+    responseData.remainingHours =
+      responseData.totalHours - responseData.usedHours;
+
     return NextResponse.json(
       {
         message: "Hours added successfully",
-        companyHours: companyHoursRecord,
+        companyHours: responseData,
       },
       { status: 200 }
     );
