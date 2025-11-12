@@ -141,7 +141,7 @@ export const BOOKING_CONFIRMATION_TEMPLATE = (
         <div class="footer">
             <p>Thank you for choosing <span class="company-name">Coworking Cube</span></p>
             <p>📍 Kottawa & Mirissa Branches</p>
-            <p>📞 Contact: +94 XX XXX XXXX | ✉️ support@coworkingcube.com</p>
+            <p>📞 Contact: +94 707 98 98 91 | ✉️ vidushini@coworkingcube.lk</p>
         </div>
     </div>
 </body>
@@ -447,7 +447,7 @@ export const REGISTRATION_CONFIRMATION_TEMPLATE = (user: any) => `
         <div class="footer">
             <p>Thank you for choosing <span class="company-name">Coworking Cube</span></p>
             <p>📍 Kottawa & Mirissa Branches</p>
-            <p>📞 Contact: +94 XX XXX XXXX | ✉️ support@coworkingcube.com</p>
+            <p>📞 Contact: +94 707 98 98 91 | ✉️ vidushini@coworkingcube.lk</p>
         </div>
     </div>
 </body>
@@ -676,7 +676,7 @@ export const PASSWORD_RESET_OTP_TEMPLATE = (user: any, otp: string) => `
         <div class="footer">
             <p>Thank you for choosing <span class="company-name">Coworking Cube</span></p>
             <p>📍 Kottawa & Mirissa Branches</p>
-            <p>📞 Contact: +94 XX XXX XXXX | ✉️ support@coworkingcube.com</p>
+            <p>📞 Contact: +94 707 98 98 91 | ✉️ vidushini@coworkingcube.lk</p>
         </div>
     </div>
 </body>
@@ -789,7 +789,7 @@ export const PASSWORD_RESET_SUCCESS_TEMPLATE = (user: any) => `
         <div class="footer">
             <p>Thank you for choosing <span class="company-name">Coworking Cube</span></p>
             <p>📍 Kottawa & Mirissa Branches</p>
-            <p>📞 Contact: +94 XX XXX XXXX | ✉️ support@coworkingcube.com</p>
+            <p>📞 Contact: +94 707 98 98 91 | ✉️ vidushini@coworkingcube.lk</p>
         </div>
     </div>
 </body>
