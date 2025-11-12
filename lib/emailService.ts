@@ -39,15 +39,32 @@ export const sendBookingConfirmationEmail = async (
     // Send confirmation to user
     const userMailData = {
       from: `Coworking Cube <${process.env.SMTP_FROM_EMAIL}>`,
-      to: user.email,
+      to: user.email, // Use user's email from the user object
       subject: `Booking Confirmation - ${bookingData.bookingId}`,
       html: BOOKING_CONFIRMATION_TEMPLATE(bookingData, user),
     };
 
-    // Send notification to admin
+    // Send notification to admin - use a fallback if environment variables are not set
+    const adminEmails = [];
+
+    // Add primary admin email if available
+    if (process.env.EMAIL_TO_ONE) {
+      adminEmails.push(process.env.EMAIL_TO_ONE);
+    }
+
+    // Add secondary admin email if available
+    if (process.env.EMAIL_TO_TWO) {
+      adminEmails.push(process.env.EMAIL_TO_TWO);
+    }
+
+    // If no admin emails are configured, at least send to the from email
+    if (adminEmails.length === 0) {
+      adminEmails.push(process.env.SMTP_FROM_EMAIL);
+    }
+
     const adminMailData = {
       from: `Coworking Cube <${process.env.SMTP_FROM_EMAIL}>`,
-      to: `${process.env.EMAIL_TO_ONE}, ${process.env.EMAIL_TO_TWO}`,
+      to: adminEmails.join(", "),
       subject: `New Booking - ${bookingData.bookingId}`,
       html: BOOKING_NOTIFICATION_TEMPLATE(bookingData, user),
     };
