@@ -4,16 +4,20 @@ interface FormContainerProps {
   title: string;
   children: ReactNode;
   className?: string;
+  isMobileMargin?: boolean; // New prop to control mobile margin
 }
 
 const FormContainer: React.FC<FormContainerProps> = ({
   title,
   children,
   className = "",
+  isMobileMargin = false, // Default to false
 }) => {
   return (
     <div
-      className={`w-full md:w-1/2 p-6 md:p-12 lg:p-20 flex flex-col justify-center items-center bg-gradient-to-b from-white to-orange-50 ${className}`}
+      className={`w-full md:w-1/2 p-6 md:p-12 lg:p-20 flex flex-col justify-center items-center bg-gradient-to-b from-white to-orange-50 ${
+        isMobileMargin ? "mt-[20%] md:mt-0" : ""
+      } ${className}`}
     >
       <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2 text-center">
         {title}
