@@ -3,6 +3,7 @@ import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import { hashPassword } from "@/lib/utils/password";
 import { generateToken } from "@/lib/utils/jwt";
+import { sendRegistrationConfirmationEmail } from "@/lib/emailService";
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,6 +44,25 @@ export async function POST(request: NextRequest) {
     // Generate token
     const token = generateToken(user._id.toString());
 
+    // Send registration confirmation email (don't await to avoid blocking response)
+    try {
+      const userData = {
+        name: user.name,
+        email: user.email,
+        companyName: user.companyName,
+        phoneNumber: user.phoneNumber,
+      };
+
+      await sendRegistrationConfirmationEmail(userData);
+      console.log("Registration confirmation email sent successfully");
+    } catch (emailError) {
+      console.error(
+        "Failed to send registration confirmation email:",
+        emailError
+      );
+      // Don't fail registration if email fails - just log the error
+    }
+
     // Return response
     return NextResponse.json(
       {
@@ -53,6 +73,7 @@ export async function POST(request: NextRequest) {
           email: user.email,
           companyName: user.companyName,
         },
+        message: "Registration successful! Welcome email sent.",
       },
       { status: 201 }
     );

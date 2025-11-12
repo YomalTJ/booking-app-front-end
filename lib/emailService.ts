@@ -26,6 +26,14 @@ export interface UserData {
   name: string;
   email: string;
   companyName: string;
+  phoneNumber?: string;
+}
+
+export interface RegistrationData {
+  name: string;
+  email: string;
+  companyName: string;
+  phoneNumber: string;
 }
 
 export const sendBookingConfirmationEmail = async (
@@ -77,6 +85,57 @@ export const sendBookingConfirmationEmail = async (
     return true;
   } catch (error) {
     console.error("Error sending booking confirmation emails:", error);
+    return false;
+  }
+};
+
+export const sendRegistrationConfirmationEmail = async (
+  user: RegistrationData
+) => {
+  try {
+    const {
+      REGISTRATION_CONFIRMATION_TEMPLATE,
+      REGISTRATION_NOTIFICATION_TEMPLATE,
+    } = await import("./emailTemplates");
+
+    // Send welcome email to new user
+    const userMailData = {
+      from: `Coworking Cube <${process.env.SMTP_FROM_EMAIL}>`,
+      to: user.email,
+      subject: `Welcome to Coworking Cube - Account Created Successfully`,
+      html: REGISTRATION_CONFIRMATION_TEMPLATE(user),
+    };
+
+    // Send notification to admin about new registration
+    const adminEmails = [];
+
+    if (process.env.EMAIL_TO_ONE) {
+      adminEmails.push(process.env.EMAIL_TO_ONE);
+    }
+
+    if (process.env.EMAIL_TO_TWO) {
+      adminEmails.push(process.env.EMAIL_TO_TWO);
+    }
+
+    if (adminEmails.length === 0) {
+      adminEmails.push(process.env.SMTP_FROM_EMAIL);
+    }
+
+    const adminMailData = {
+      from: `Coworking Cube <${process.env.SMTP_FROM_EMAIL}>`,
+      to: adminEmails.join(", "),
+      subject: `New User Registration - ${user.name}`,
+      html: REGISTRATION_NOTIFICATION_TEMPLATE(user),
+    };
+
+    // Send both emails
+    await transporter.sendMail(userMailData);
+    await transporter.sendMail(adminMailData);
+
+    console.log("Registration confirmation emails sent successfully");
+    return true;
+  } catch (error) {
+    console.error("Error sending registration confirmation emails:", error);
     return false;
   }
 };

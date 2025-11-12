@@ -149,7 +149,7 @@ const Register = () => {
             </div>
 
             <div className="flex justify-center pt-2">
-              <Button type="submit" disabled={isLoading} fullWidth>
+              <Button type="submit" disabled={isLoading} fullWidth className="cursor-pointer">
                 {isLoading ? "Creating Account..." : "Create Account"}
               </Button>
             </div>

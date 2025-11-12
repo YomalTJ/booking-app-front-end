@@ -94,7 +94,10 @@ export const authService = {
         );
       }
 
-      toast.success("Registration successful!");
+      // Show success message that includes email confirmation
+      toast.success(
+        data.message || "Registration successful! Welcome email sent."
+      );
       return data;
     } catch (error: any) {
       toast.error(error.message || "Registration failed");

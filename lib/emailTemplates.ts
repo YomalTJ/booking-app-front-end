@@ -303,3 +303,277 @@ export const BOOKING_NOTIFICATION_TEMPLATE = (
     </div>
 </body>
 </html>`;
+
+export const REGISTRATION_CONFIRMATION_TEMPLATE = (user: any) => `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Coworking Cube</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .content {
+            background: #f8fafc;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+            border: 1px solid #e2e8f0;
+        }
+        .welcome-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #3b82f6;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #64748b;
+        }
+        .detail-value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .features {
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+            color: #64748b;
+            font-size: 14px;
+        }
+        .company-name {
+            color: #3b82f6;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎉 Welcome to Coworking Cube!</h1>
+        <p>Your account has been successfully created</p>
+    </div>
+    
+    <div class="content">
+        <p>Dear <strong>${user.name}</strong>,</p>
+        
+        <p>Welcome to Coworking Cube! We're excited to have you on board and look forward to helping you find the perfect meeting spaces for your needs.</p>
+        
+        <div class="welcome-section">
+            <h3>Your Account Details</h3>
+            <div class="detail-row">
+                <span class="detail-label">Full Name:</span>
+                <span class="detail-value">${user.name}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Email:</span>
+                <span class="detail-value">${user.email}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Company:</span>
+                <span class="detail-value">${user.companyName}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Account Type:</span>
+                <span class="detail-value">Standard Account</span>
+            </div>
+        </div>
+
+        <div class="features">
+            <h3>🚀 What You Can Do Now:</h3>
+            <ul>
+                <li>Book meeting rooms at our Kottawa & Mirissa branches</li>
+                <li>Manage your bookings through your dashboard</li>
+                <li>Track your company's booking hours</li>
+                <li>Receive instant booking confirmations</li>
+                <li>Modify or cancel bookings as needed</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="${
+              process.env.NEXT_PUBLIC_API_BASE_URL || "https://yourdomain.com"
+            }" class="cta-button">
+                Start Booking Now
+            </a>
+        </div>
+
+        <p><strong>Need Help?</strong></p>
+        <ul>
+            <li>Check out our FAQ section for common questions</li>
+            <li>Contact our support team for assistance</li>
+            <li>Visit our branches for a personal tour</li>
+        </ul>
+
+        <div class="footer">
+            <p>Thank you for choosing <span class="company-name">Coworking Cube</span></p>
+            <p>📍 Kottawa & Mirissa Branches</p>
+            <p>📞 Contact: +94 XX XXX XXXX | ✉️ support@coworkingcube.com</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+export const REGISTRATION_NOTIFICATION_TEMPLATE = (user: any) => `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New User Registration</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .content {
+            background: #faf5ff;
+            padding: 25px;
+            border-radius: 0 0 10px 10px;
+            border: 1px solid #ddd6fe;
+        }
+        .user-info {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #8b5cf6;
+        }
+        .info-section {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 6px;
+        }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .detail-item {
+            padding: 8px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .label {
+            font-weight: 600;
+            color: #475569;
+            font-size: 14px;
+        }
+        .value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .timestamp {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👤 New User Registration</h1>
+        <p>A new user has registered on Coworking Cube</p>
+    </div>
+    
+    <div class="content">
+        <div class="info-section">
+            <h3>User Information</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <div class="label">Full Name:</div>
+                    <div class="value">${user.name}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="label">Email:</div>
+                    <div class="value">${user.email}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="label">Company:</div>
+                    <div class="value">${user.companyName}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="label">Phone Number:</div>
+                    <div class="value">${user.phoneNumber}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="timestamp">
+            <strong>Registration Date:</strong> ${new Date().toLocaleDateString(
+              "en-US",
+              {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              }
+            )}
+        </div>
+
+        <div style="background: #fef3c7; border: 1px solid #fcd34d; padding: 15px; border-radius: 8px;">
+            <h3>📊 System Update</h3>
+            <p><strong>Total Users:</strong> [Automated count would go here]</p>
+            <p><strong>Action:</strong> New user account requires no additional setup</p>
+        </div>
+
+        <p><em>This is an automated notification from the Coworking Cube registration system.</em></p>
+    </div>
+</body>
+</html>`;
