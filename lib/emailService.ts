@@ -48,7 +48,7 @@ export const sendBookingConfirmationEmail = async (
     const userMailData = {
       from: `Coworking Cube <${process.env.SMTP_FROM_EMAIL}>`,
       to: user.email, // Use user's email from the user object
-      subject: `Booking Confirmation - ${bookingData.bookingId}`,
+      subject: `Booking Confirmation - ${user.companyName}`,
       html: BOOKING_CONFIRMATION_TEMPLATE(bookingData, user),
     };
 

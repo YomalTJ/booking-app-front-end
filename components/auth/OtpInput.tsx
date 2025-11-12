@@ -13,19 +13,23 @@ const OtpInput: React.FC<OtpInputProps> = ({ length = 6, onOtpChange }) => {
   }, [length]);
 
   const handleChange = (index: number, value: string) => {
+    // Handle paste operation - when user pastes 6 digits at once
     if (value.length > 1) {
-      // Paste operation
-      const pastedValue = value.slice(0, length);
+      const pastedValue = value.replace(/\D/g, "").slice(0, length); // Remove non-digits and limit to length
+
+      // Fill each input with corresponding digit
       pastedValue.split("").forEach((char, i) => {
         if (inputRefs.current[i]) {
           inputRefs.current[i]!.value = char;
         }
       });
+
+      // Update the OTP state
       onOtpChange(pastedValue);
 
-      // Focus last input
-      const lastIndex = Math.min(pastedValue.length - 1, length - 1);
-      inputRefs.current[lastIndex]?.focus();
+      // Focus the next available input or the last one
+      const nextIndex = Math.min(pastedValue.length, length - 1);
+      inputRefs.current[nextIndex]?.focus();
       return;
     }
 
@@ -34,6 +38,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ length = 6, onOtpChange }) => {
       inputRefs.current[index + 1]?.focus();
     }
 
+    // Update OTP value
     const otp = inputRefs.current.map((ref) => ref?.value || "").join("");
     onOtpChange(otp);
   };
@@ -42,12 +47,35 @@ const OtpInput: React.FC<OtpInputProps> = ({ length = 6, onOtpChange }) => {
     index: number,
     e: React.KeyboardEvent<HTMLInputElement>
   ) => {
-    if (
-      e.key === "Backspace" &&
-      !inputRefs.current[index]?.value &&
-      index > 0
-    ) {
-      inputRefs.current[index - 1]?.focus();
+    if (e.key === "Backspace") {
+      if (!inputRefs.current[index]?.value && index > 0) {
+        // Move to previous input on backspace if current is empty
+        inputRefs.current[index - 1]?.focus();
+      } else if (inputRefs.current[index]?.value) {
+        // Clear current input and stay there
+        inputRefs.current[index]!.value = "";
+        const otp = inputRefs.current.map((ref) => ref?.value || "").join("");
+        onOtpChange(otp);
+      }
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text/plain").replace(/\D/g, ""); // Remove non-digits
+
+    if (pastedData.length === length) {
+      // Distribute pasted digits across all inputs
+      pastedData.split("").forEach((char, i) => {
+        if (inputRefs.current[i]) {
+          inputRefs.current[i]!.value = char;
+        }
+      });
+
+      onOtpChange(pastedData);
+
+      // Focus the last input after paste
+      inputRefs.current[length - 1]?.focus();
     }
   };
 
@@ -64,11 +92,14 @@ const OtpInput: React.FC<OtpInputProps> = ({ length = 6, onOtpChange }) => {
             inputRefs.current[index] = el;
           }}
           type="text"
-          maxLength={1}
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={6} // Allow paste by setting maxLength to 6
           className="w-12 h-12 text-center text-lg font-semibold border border-gray-300 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-colors"
           onChange={(e) => handleChange(index, e.target.value)}
           onKeyDown={(e) => handleKeyDown(index, e)}
           onFocus={() => handleFocus(index)}
+          onPaste={handlePaste}
         />
       ))}
     </div>
