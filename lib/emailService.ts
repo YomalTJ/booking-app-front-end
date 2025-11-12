@@ -1,8 +1,9 @@
 import nodemailer from "nodemailer";
 
+// Create transporter
 const transporter = nodemailer.createTransport({
   port: parseInt(process.env.SMTP_PORT || "465"),
-  host: process.env.SMTP_HOST,
+  host: process.env.SMTP_HOST || "smtp.hostinger.com",
   auth: {
     user: process.env.SMTP_FROM_EMAIL,
     pass: process.env.SMTP_PASSWORD,
@@ -17,6 +18,8 @@ export interface BookingEmailData {
   timeSlot: string;
   duration: string;
   isFullDay: boolean;
+  hoursUsed?: number;
+  remainingHours?: number;
 }
 
 export interface UserData {

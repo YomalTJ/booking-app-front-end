@@ -3,10 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Booking from "@/models/Booking";
 import User from "@/models/User";
+import Room from "@/models/Room";
 import CompanyHours from "@/models/CompanyHours";
 import { checkTimeSlotAvailability } from "@/lib/utils/availability";
 import { verifyToken } from "@/lib/utils/jwt";
 import { JwtPayload } from "jsonwebtoken";
+import { sendBookingConfirmationEmail } from "@/lib/emailService";
 
 // Business hours constants - MUST match frontend
 const BUSINESS_OPEN = "08:00";
@@ -53,6 +55,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
+    // Get room details for email
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return NextResponse.json({ message: "Room not found" }, { status: 404 });
+    }
+
     // Parse booking date (YYYY-MM-DD format) to UTC
     let dateObj: Date;
     if (typeof bookingDate === "string") {
@@ -68,8 +76,6 @@ export async function POST(request: NextRequest) {
     }
 
     // CRITICAL: Determine actual start and end times based on full day booking
-    // For full day bookings, ALWAYS use business hours (08:00 - 18:00)
-    // Ignore any 00:00 or 23:59 values from frontend
     let actualStartTime: string;
     let actualEndTime: string;
 
@@ -77,11 +83,6 @@ export async function POST(request: NextRequest) {
       // Full day booking MUST use business hours
       actualStartTime = BUSINESS_OPEN;
       actualEndTime = BUSINESS_CLOSE;
-
-      console.log("Full day booking detected - using business hours:", {
-        actualStartTime,
-        actualEndTime,
-      });
     } else {
       // Regular booking - use provided times
       if (!startTime || !endTime) {
@@ -95,11 +96,6 @@ export async function POST(request: NextRequest) {
       }
       actualStartTime = startTime;
       actualEndTime = endTime;
-
-      console.log("Custom time slot booking:", {
-        actualStartTime,
-        actualEndTime,
-      });
     }
 
     // Validate times are in business hours format (HH:MM)
@@ -125,6 +121,7 @@ export async function POST(request: NextRequest) {
     });
 
     let isHourBasedBooking = false;
+    let remainingHoursAfterBooking = null;
 
     if (companyHours) {
       // Check if company has enough hours
@@ -140,6 +137,7 @@ export async function POST(request: NextRequest) {
       }
 
       isHourBasedBooking = true;
+      remainingHoursAfterBooking = companyHours.remainingHours - bookingHours;
     }
 
     // Check for booking conflicts using the availability utility
@@ -165,8 +163,8 @@ export async function POST(request: NextRequest) {
       userId: userDecoded.userId,
       roomId,
       bookingDate: dateObj,
-      startTime: actualStartTime, // Will be 08:00 for full day
-      endTime: actualEndTime, // Will be 18:00 for full day
+      startTime: actualStartTime,
+      endTime: actualEndTime,
       isFullDayBooking: isFullDayBooking || false,
       notes: notes || "",
       isHourBasedBooking,
@@ -178,6 +176,7 @@ export async function POST(request: NextRequest) {
     // Deduct hours from company if hour-based booking
     if (isHourBasedBooking && companyHours) {
       companyHours.usedHours += bookingHours;
+      companyHours.remainingHours = remainingHoursAfterBooking!;
       companyHours.transactions.push({
         type: "use",
         hours: bookingHours,
@@ -199,6 +198,57 @@ export async function POST(request: NextRequest) {
       isFullDayBooking: booking.isFullDayBooking,
       hoursUsed: booking.hoursUsed,
     });
+
+    // Send confirmation email
+    try {
+      const formatTimeTo12h = (time24: string): string => {
+        const [hours, minutes] = time24.split(":").map(Number);
+        const ampm = hours >= 12 ? "PM" : "AM";
+        const displayHours = hours % 12 || 12;
+        return `${displayHours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+      };
+
+      const timeSlot = isFullDayBooking
+        ? "Full Day (8:00 AM - 6:00 PM)"
+        : `${formatTimeTo12h(actualStartTime)} - ${formatTimeTo12h(
+            actualEndTime
+          )}`;
+
+      const duration = isFullDayBooking
+        ? "Full Day"
+        : `${bookingHours.toFixed(1)} hours`;
+
+      const bookingEmailData = {
+        bookingId: booking._id.toString(),
+        roomName: room.name,
+        date: new Date(bookingDate).toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        timeSlot,
+        duration,
+        isFullDay: isFullDayBooking || false,
+        hoursUsed: isHourBasedBooking ? bookingHours : undefined,
+        remainingHours:
+          remainingHoursAfterBooking !== null
+            ? remainingHoursAfterBooking
+            : undefined,
+      };
+
+      const userData = {
+        name: user.name,
+        email: user.email,
+        companyName: user.companyName || "Not specified",
+      };
+
+      await sendBookingConfirmationEmail(userData, bookingEmailData);
+      console.log("Booking confirmation email sent successfully");
+    } catch (emailError) {
+      console.error("Failed to send confirmation email:", emailError);
+      // Don't fail the booking if email fails - just log the error
+    }
 
     return NextResponse.json(
       {
