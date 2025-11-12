@@ -50,9 +50,9 @@ export const authService = {
         localStorage.setItem(
           "user",
           JSON.stringify({
-            name: data.name,
-            companyName: data.companyName,
-            email: data.email,
+            name: data.name, // ✅ Fixed: access data.name directly
+            companyName: data.companyName, // ✅ Fixed: access data.companyName directly
+            email: data.email, // ✅ Fixed: access data.email directly
           })
         );
       }
