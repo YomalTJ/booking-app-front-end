@@ -15,9 +15,10 @@ import FormInput from "@/components/auth/FormInput";
 import Button from "@/components/auth/Button";
 import { authService } from "@/services/auth-service";
 
+// Login form validation schema
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters long"),
+  password: z.string().min(1, "Password is required"),
 });
 
 type LoginFormInputs = z.infer<typeof loginSchema>;
@@ -37,24 +38,11 @@ const Login = () => {
   const onSubmit: SubmitHandler<LoginFormInputs> = async (data) => {
     setIsLoading(true);
     try {
-      const response = await authService.login({
+      await authService.login({
         email: data.email,
         password: data.password,
       });
-
-      localStorage.setItem("token", response.token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          name: response.name,
-          companyName: response.companyName,
-          email: response.email,
-        })
-      );
-
-      // Force page refresh to update navbar
-      router.push("/");
-      window.location.href = "/";
+      router.push("/calendar-view");
     } catch (error) {
       console.error("Login error:", error);
     } finally {
@@ -66,22 +54,11 @@ const Login = () => {
     <>
       <Toaster position="top-right" />
       <AuthLayout>
-        {/* Left side - Blue Container with Orange gradient */}
-        <BlueContainer
-          title="Don't have an account?"
-          subtitle="Sign up now to unlock your dashboard, manage your workspace, and stay connected effortlessly."
-          buttonText="SIGN UP"
-          buttonLink="/auth/signup"
-          imageSrc="/Auth/log.svg" // Keeping for backward compatibility
-          icon="users" // or "rocket" for login
-          className="hidden md:flex"
-        />
-
-        {/* Right side - Form */}
-        <FormContainer title="Log in to your account" className="mt-[20%] md:mt-0">
+        {/* Left side - Login form */}
+        <FormContainer title="Welcome back" isMobileMargin={true}>
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="w-full max-w-md space-y-5"
+            className="w-full max-w-md space-y-4"
           >
             <FormInput
               id="email"
@@ -101,21 +78,22 @@ const Login = () => {
               error={errors.password?.message}
             />
 
-            {/* <div className="flex justify-end">
+            {/* Forgot Password Link */}
+            <div className="text-right">
               <Link href="/auth/forgot-password">
-                <p className="text-sm text-orange-600 hover:text-orange-700 font-medium transition-colors">
-                  Forgot your password?
-                </p>
+                <span className="text-sm text-orange-600 hover:text-orange-700 font-semibold cursor-pointer">
+                  Forgot Password?
+                </span>
               </Link>
-            </div> */}
+            </div>
 
-            <div className="flex justify-center pt-2">
-              <Button type="submit" disabled={isLoading} fullWidth>
-                {isLoading ? "Logging in..." : "Log In"}
+            <div className="flex justify-center">
+              <Button type="submit" disabled={isLoading} fullWidth className="cursor-pointer">
+                {isLoading ? "Signing In..." : "SIGN IN"}
               </Button>
             </div>
 
-            <p className="text-center text-sm text-gray-600 pt-4 border-t border-gray-200">
+            <p className="text-center text-sm text-gray-600 pt-4">
               Don't have an account?{" "}
               <Link href="/auth/signup">
                 <span className="text-orange-600 hover:text-orange-700 font-semibold cursor-pointer">
@@ -132,6 +110,17 @@ const Login = () => {
             </div>
           </form>
         </FormContainer>
+
+        {/* Right side - Blue Container with Orange gradient */}
+        <BlueContainer
+          title="New to Coworking Cube?"
+          subtitle="Sign up now to start booking meeting rooms and manage your company's bookings with ease."
+          buttonText="SIGN UP"
+          buttonLink="/auth/register"
+          imageSrc="/Auth/login.svg"
+          icon="users"
+          className="hidden md:flex"
+        />
       </AuthLayout>
     </>
   );

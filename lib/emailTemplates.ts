@@ -577,3 +577,220 @@ export const REGISTRATION_NOTIFICATION_TEMPLATE = (user: any) => `
     </div>
 </body>
 </html>`;
+
+export const PASSWORD_RESET_OTP_TEMPLATE = (user: any, otp: string) => `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Reset OTP</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .content {
+            background: #fef2f2;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+            border: 1px solid #fecaca;
+        }
+        .otp-container {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            border: 2px dashed #dc2626;
+        }
+        .otp-code {
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 8px;
+            color: #dc2626;
+            margin: 15px 0;
+        }
+        .security-note {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+            color: #64748b;
+            font-size: 14px;
+        }
+        .company-name {
+            color: #dc2626;
+            font-weight: bold;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔒 Password Reset Request</h1>
+        <p>Use this code to reset your password</p>
+    </div>
+    
+    <div class="content">
+        <p>Dear <strong>${user.name}</strong>,</p>
+        
+        <p>We received a request to reset your password for your Coworking Cube account. Use the verification code below to proceed with resetting your password.</p>
+        
+        <div class="otp-container">
+            <h3>Your Verification Code</h3>
+            <div class="otp-code">${otp}</div>
+            <p>This code will expire in 10 minutes</p>
+        </div>
+
+        <div class="security-note">
+            <h3>⚠️ Security Notice</h3>
+            <p>If you didn't request this password reset, please ignore this email. Your account security is important to us.</p>
+        </div>
+
+        <p><strong>Need Help?</strong></p>
+        <ul>
+            <li>This code is valid for 10 minutes only</li>
+            <li>Do not share this code with anyone</li>
+            <li>Contact support if you need assistance</li>
+        </ul>
+
+        <div class="footer">
+            <p>Thank you for choosing <span class="company-name">Coworking Cube</span></p>
+            <p>📍 Kottawa & Mirissa Branches</p>
+            <p>📞 Contact: +94 XX XXX XXXX | ✉️ support@coworkingcube.com</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+export const PASSWORD_RESET_SUCCESS_TEMPLATE = (user: any) => `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Reset Successful</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #059669, #047857);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .content {
+            background: #f0fdf4;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+            border: 1px solid #bbf7d0;
+        }
+        .success-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #059669;
+        }
+        .security-tips {
+            background: #fffbeb;
+            border: 1px solid #fed7aa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+            color: #64748b;
+            font-size: 14px;
+        }
+        .company-name {
+            color: #059669;
+            font-weight: bold;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>✅ Password Reset Successful</h1>
+        <p>Your password has been updated successfully</p>
+    </div>
+    
+    <div class="content">
+        <p>Dear <strong>${user.name}</strong>,</p>
+        
+        <p>Your Coworking Cube account password has been successfully reset. You can now log in to your account using your new password.</p>
+        
+        <div class="success-section">
+            <h3>Account Security Update</h3>
+            <p><strong>Password Changed:</strong> ${new Date().toLocaleDateString(
+              "en-US",
+              {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              }
+            )}</p>
+            <p><strong>Account:</strong> ${user.email}</p>
+        </div>
+
+        <div class="security-tips">
+            <h3>🔒 Security Tips</h3>
+            <ul>
+                <li>Use a strong, unique password</li>
+                <li>Never share your password with anyone</li>
+                <li>Log out from shared devices</li>
+                <li>Enable two-factor authentication if available</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <a href="${
+              process.env.NEXT_PUBLIC_API_BASE_URL || "https://yourdomain.com"
+            }/auth/login" 
+               style="display: inline-block; background: linear-gradient(135deg, #059669, #047857); color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600;">
+                Log In to Your Account
+            </a>
+        </div>
+
+        <div class="footer">
+            <p>Thank you for choosing <span class="company-name">Coworking Cube</span></p>
+            <p>📍 Kottawa & Mirissa Branches</p>
+            <p>📞 Contact: +94 XX XXX XXXX | ✉️ support@coworkingcube.com</p>
+        </div>
+    </div>
+</body>
+</html>`;

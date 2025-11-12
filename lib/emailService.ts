@@ -139,3 +139,48 @@ export const sendRegistrationConfirmationEmail = async (
     return false;
   }
 };
+
+export const sendPasswordResetOtpEmail = async (
+  user: UserData,
+  otp: string
+) => {
+  try {
+    const { PASSWORD_RESET_OTP_TEMPLATE } = await import("./emailTemplates");
+
+    const mailData = {
+      from: `Coworking Cube <${process.env.SMTP_FROM_EMAIL}>`,
+      to: user.email,
+      subject: `Password Reset Verification Code - Coworking Cube`,
+      html: PASSWORD_RESET_OTP_TEMPLATE(user, otp),
+    };
+
+    await transporter.sendMail(mailData);
+    console.log("Password reset OTP email sent successfully");
+    return true;
+  } catch (error) {
+    console.error("Error sending password reset OTP email:", error);
+    return false;
+  }
+};
+
+export const sendPasswordResetSuccessEmail = async (user: UserData) => {
+  try {
+    const { PASSWORD_RESET_SUCCESS_TEMPLATE } = await import(
+      "./emailTemplates"
+    );
+
+    const mailData = {
+      from: `Coworking Cube <${process.env.SMTP_FROM_EMAIL}>`,
+      to: user.email,
+      subject: `Password Reset Successful - Coworking Cube`,
+      html: PASSWORD_RESET_SUCCESS_TEMPLATE(user),
+    };
+
+    await transporter.sendMail(mailData);
+    console.log("Password reset success email sent successfully");
+    return true;
+  } catch (error) {
+    console.error("Error sending password reset success email:", error);
+    return false;
+  }
+};

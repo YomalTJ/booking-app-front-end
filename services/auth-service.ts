@@ -224,4 +224,85 @@ export const authService = {
     }
     return null;
   },
+
+  async requestPasswordReset(email: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to send verification code");
+      }
+
+      const data = await response.json();
+      toast.success("Verification code sent to your email");
+      return data;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send verification code");
+      throw error;
+    }
+  },
+
+  async verifyOtp(email: string, otp: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/verify-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, otp }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Invalid verification code");
+      }
+
+      const data = await response.json();
+      toast.success("Email verified successfully");
+      return data;
+    } catch (error: any) {
+      toast.error(error.message || "Invalid verification code");
+      throw error;
+    }
+  },
+
+  async resetPasswordWithOtp(email: string, otp: string, newPassword: string) {
+    try {
+      console.log("Making reset request with:", {
+        email,
+        otp: otp ? "***" : "missing",
+        newPassword: newPassword ? "***" : "missing",
+      });
+
+      const response = await fetch(`${API_BASE_URL}/reset-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, otp, newPassword }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.log("Reset password error response:", error);
+        throw new Error(error.message || "Failed to reset password");
+      }
+
+      const data = await response.json();
+      toast.success(
+        "Password reset successfully! You can now log in with your new password."
+      );
+      return data;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to reset password");
+      throw error;
+    }
+  },
 };
