@@ -38,11 +38,24 @@ const Login = () => {
   const onSubmit: SubmitHandler<LoginFormInputs> = async (data) => {
     setIsLoading(true);
     try {
-      await authService.login({
+      const response = await authService.login({
         email: data.email,
         password: data.password,
       });
-      router.push("/calendar-view");
+
+      // Store token and user info in localStorage
+      localStorage.setItem("token", response.token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          name: response.name,
+          companyName: response.companyName,
+          email: response.email,
+        })
+      );
+
+      // Force a reload to ensure Navbar gets the updated user data
+      window.location.href = "/calendar-view";
     } catch (error) {
       console.error("Login error:", error);
     } finally {
@@ -88,14 +101,19 @@ const Login = () => {
             </div>
 
             <div className="flex justify-center">
-              <Button type="submit" disabled={isLoading} fullWidth className="cursor-pointer">
+              <Button
+                type="submit"
+                disabled={isLoading}
+                fullWidth
+                className="cursor-pointer"
+              >
                 {isLoading ? "Signing In..." : "SIGN IN"}
               </Button>
             </div>
 
             <p className="text-center text-sm text-gray-600 pt-4">
               Don't have an account?{" "}
-              <Link href="/auth/signup">
+              <Link href="/auth/register">
                 <span className="text-orange-600 hover:text-orange-700 font-semibold cursor-pointer">
                   Sign up here
                 </span>
