@@ -134,7 +134,7 @@ const Login = () => {
           title="New to Coworking Cube?"
           subtitle="Sign up now to start booking meeting rooms and manage your company's bookings with ease."
           buttonText="SIGN UP"
-          buttonLink="/auth/register"
+          buttonLink="/auth/signup"
           imageSrc="/Auth/login.svg"
           icon="users"
           className="hidden md:flex"
